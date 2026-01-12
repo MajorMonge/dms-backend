@@ -27,7 +27,7 @@ const jwksClient = jwksRsa({
   cacheMaxAge: 600000, // 10 minutes
   rateLimit: true,
   jwksRequestsPerMinute: 10,
-  jwksUri: `https://cognito-idp.${config.cognito.region}.amazonaws.com/${config.cognito.userPoolId}/.well-known/jwks.json`,
+  jwksUri: `https://cognito-idp.${config.aws.region}.amazonaws.com/${config.cognito.userPoolId}/.well-known/jwks.json`,
 });
 
 // Get signing key from JWKS
@@ -55,7 +55,7 @@ const verifyCognitoToken = (token: string): Promise<AuthenticatedUser> => {
       getSigningKey,
       {
         algorithms: ['RS256'],
-        issuer: `https://cognito-idp.${config.cognito.region}.amazonaws.com/${config.cognito.userPoolId}`,
+        issuer: `https://cognito-idp.${config.aws.region}.amazonaws.com/${config.cognito.userPoolId}`,
       },
       (err, decoded) => {
         if (err) {

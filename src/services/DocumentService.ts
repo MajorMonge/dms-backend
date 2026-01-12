@@ -3,6 +3,7 @@ import path from 'path';
 import mongoose from 'mongoose';
 import { DocumentModel, IDocumentDocument } from '../models/Document';
 import { S3StorageAdapter } from '../adapters/storage/S3StorageAdapter';
+import { userService } from './UserService';
 import { config } from '../config/index';
 import { logger } from '../config/logger';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
@@ -103,6 +104,11 @@ export class DocumentService {
         this.validateFileType(fileName, mimeType);
         this.validateFileSize(size);
 
+        const hasStorage = await userService.hasStorageAvailable(ownerId, size);
+        if (!hasStorage) {
+            throw new ValidationError('Insufficient storage space');
+        }
+
         const key = this.generateStorageKey(ownerId, fileName);
         const uploadUrl = await this.storage.getPresignedUploadUrl(key, {
             contentType: mimeType,
@@ -131,13 +137,11 @@ export class DocumentService {
             metadata?: Record<string, unknown>;
         }
     ): Promise<DocumentResponse> {
-        // Verify file exists in S3
         const exists = await this.storage.exists(key);
         if (!exists) {
             throw new ValidationError('File not found in storage. Upload may have failed.');
         }
 
-        // Get file metadata from S3
         const s3Metadata = await this.storage.getMetadata(key);
         const fileName = path.basename(key);
         const extension = this.getExtension(fileName);
@@ -154,6 +158,10 @@ export class DocumentService {
             tags: options.tags || [],
             metadata: options.metadata || {},
         });
+
+        if (doc.size > 0) {
+            await userService.updateStorageUsed(ownerId, doc.size);
+        }
 
         logger.info(`Document created: ${doc._id} by user ${ownerId}`);
 
@@ -178,10 +186,14 @@ export class DocumentService {
         this.validateFileType(fileName, mimeType);
         this.validateFileSize(file.length);
 
+        const hasStorage = await userService.hasStorageAvailable(ownerId, file.length);
+        if (!hasStorage) {
+            throw new ValidationError('Insufficient storage space');
+        }
+
         const key = this.generateStorageKey(ownerId, fileName);
         const extension = this.getExtension(fileName);
 
-        // Upload to S3
         await this.storage.upload(key, file, {
             contentType: mimeType,
             metadata: {
@@ -190,7 +202,6 @@ export class DocumentService {
             },
         });
 
-        // Create document record
         const doc = await DocumentModel.create({
             name: options?.name || fileName,
             originalName: fileName,
@@ -203,6 +214,8 @@ export class DocumentService {
             tags: options?.tags || [],
             metadata: options?.metadata || {},
         });
+
+        await userService.updateStorageUsed(ownerId, file.length);
 
         logger.info(`Document uploaded directly: ${doc._id} by user ${ownerId}`);
 
@@ -223,7 +236,6 @@ export class DocumentService {
             throw new NotFoundError('Document');
         }
 
-        // Generate download URL
         const downloadUrl = await this.storage.getPresignedDownloadUrl(doc.storageKey, {
             expiresIn: MAX_EXPIRE_TIME,
         });
@@ -397,13 +409,15 @@ export class DocumentService {
             throw new NotFoundError('Document');
         }
 
-        // Generate new storage key
+        const hasStorage = await userService.hasStorageAvailable(ownerId, source.size);
+        if (!hasStorage) {
+            throw new ValidationError('Insufficient storage space to copy this document.');
+        }
+
         const newKey = this.generateStorageKey(ownerId, source.originalName);
 
-        // Copy file in S3
         await this.storage.copy(source.storageKey, newKey);
 
-        // Create new document record
         const doc = await DocumentModel.create({
             name: options?.name || `Copy of ${source.name}`,
             originalName: source.originalName,
@@ -418,6 +432,8 @@ export class DocumentService {
             tags: [...source.tags],
             metadata: { ...source.metadata },
         });
+
+        await userService.updateStorageUsed(ownerId, source.size);
 
         logger.info(`Document copied: ${source._id} -> ${doc._id} by user ${ownerId}`);
 
@@ -450,11 +466,13 @@ export class DocumentService {
             throw new NotFoundError('Document');
         }
 
-        // Delete from S3
+        const docSize = doc.size;
+
         await this.storage.delete(doc.storageKey);
 
-        // Delete from database
         await DocumentModel.deleteOne({ _id: id });
+
+        await userService.updateStorageUsed(ownerId, -docSize);
 
         logger.info(`Document permanently deleted: ${id} by user ${ownerId}`);
     }
@@ -508,14 +526,20 @@ export class DocumentService {
     async emptyTrash(ownerId: string): Promise<number> {
         const docs = await DocumentModel.find({ ownerId, isDeleted: true });
 
-        // Delete all files from S3
-        if (docs.length > 0) {
-            const keys = docs.map(doc => doc.storageKey);
-            await this.storage.deleteMany(keys);
+        if (docs.length === 0) {
+            return 0;
         }
 
-        // Delete from database
+        const totalSize = docs.reduce((sum, doc) => sum + doc.size, 0);
+
+        const keys = docs.map(doc => doc.storageKey);
+        await this.storage.deleteMany(keys);
+
         const result = await DocumentModel.deleteMany({ ownerId, isDeleted: true });
+
+        if (totalSize > 0) {
+            await userService.updateStorageUsed(ownerId, -totalSize);
+        }
 
         logger.info(`Trash emptied: ${result.deletedCount} documents deleted by user ${ownerId}`);
 

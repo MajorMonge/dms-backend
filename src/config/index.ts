@@ -4,6 +4,9 @@ import path from 'path';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 export const config = {
+  // Project
+  projectName: process.env.PROJECT_NAME || 'dms',
+
   // Server
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3000', 10),
@@ -17,7 +20,7 @@ export const config = {
 
   // AWS General
   aws: {
-    region: process.env.AWS_REGION || 'us-east-2',
+    region: process.env.AWS_REGION || 'us-east-1',
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
@@ -25,14 +28,15 @@ export const config = {
   // AWS S3
   s3: {
     bucketName: process.env.AWS_S3_BUCKET_NAME || 'dms-documents',
-    region: process.env.AWS_S3_BUCKET_REGION || 'us-east-2',
+    versioningEnabled: process.env.AWS_S3_VERSIONING_ENABLED === 'true',
   },
 
   // AWS Cognito
   cognito: {
+    userPoolName: process.env.AWS_COGNITO_USER_POOL_NAME || 'user-pool',
+    clientName: process.env.AWS_COGNITO_CLIENT_NAME || 'web-client',
     userPoolId: process.env.AWS_COGNITO_USER_POOL_ID || '',
     clientId: process.env.AWS_COGNITO_CLIENT_ID || '',
-    region: process.env.AWS_COGNITO_REGION || 'us-east-2',
   },
 
   // JWT

@@ -35,7 +35,7 @@ export class S3StorageAdapter implements IStorageAdapter {
     this.bucketName = bucketName || config.s3.bucketName;
 
     this.client = new S3Client({
-      region: config.s3.region,
+      region: config.aws.region,
       credentials: config.aws.accessKeyId && config.aws.secretAccessKey
         ? {
             accessKeyId: config.aws.accessKeyId,

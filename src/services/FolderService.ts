@@ -59,7 +59,10 @@ export class FolderService {
 
         const depth = parent.depth + 1;
         if (depth > MAX_FOLDER_DEPTH) {
-            throw new ValidationError(`Maximum folder nesting depth of ${MAX_FOLDER_DEPTH} exceeded`);
+            throw new ValidationError(
+                `Maximum folder nesting depth of ${MAX_FOLDER_DEPTH} exceeded`,
+                'FOLDER_MAX_DEPTH_EXCEEDED'
+            );
         }
 
         return {
@@ -90,7 +93,10 @@ export class FolderService {
 
         const existing = await FolderModel.findOne(filter);
         if (existing) {
-            throw new ConflictError(`A folder named "${name}" already exists in this location`);
+            throw new ConflictError(
+                `A folder named "${name}" already exists in this location`,
+                'FOLDER_NAME_EXISTS'
+            );
         }
     }
 
@@ -424,7 +430,10 @@ export class FolderService {
 
             // Check if target is a descendant of the folder being moved
             if (targetParent.path.startsWith(folder.path + '/')) {
-                throw new ValidationError('Cannot move a folder into its own subfolder');
+                throw new ValidationError(
+                    'Cannot move a folder into its own subfolder',
+                    'FOLDER_MOVE_INTO_SELF'
+                );
             }
         }
 
@@ -443,7 +452,8 @@ export class FolderService {
         const depthIncrease = newDepth - folder.depth;
         if (maxDescendantDepth + depthIncrease > MAX_FOLDER_DEPTH) {
             throw new ValidationError(
-                `Moving this folder would exceed the maximum nesting depth of ${MAX_FOLDER_DEPTH}`
+                `Moving this folder would exceed the maximum nesting depth of ${MAX_FOLDER_DEPTH}`,
+                'FOLDER_MAX_DEPTH_EXCEEDED'
             );
         }
 
@@ -578,7 +588,8 @@ export class FolderService {
 
             if (!parent) {
                 throw new ValidationError(
-                    'Cannot restore folder: parent folder is deleted. Restore the parent folder first.'
+                    'Cannot restore folder: parent folder is deleted. Restore the parent folder first.',
+                    'FOLDER_PARENT_DELETED'
                 );
             }
         }

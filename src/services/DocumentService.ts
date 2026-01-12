@@ -547,5 +547,4 @@ export class DocumentService {
     }
 }
 
-// Export singleton instance
 export const documentService = new DocumentService();

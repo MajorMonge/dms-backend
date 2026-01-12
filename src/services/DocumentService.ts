@@ -50,7 +50,8 @@ export class DocumentService {
         const ext = this.getExtension(fileName);
         if (!config.upload.allowedFileTypes.includes(ext)) {
             throw new ValidationError(
-                `File type '.${ext}' is not allowed. Allowed types: ${config.upload.allowedFileTypes.join(', ')}`
+                `File type '.${ext}' is not allowed. Allowed types: ${config.upload.allowedFileTypes.join(', ')}`,
+                'DOC_INVALID_FILE_TYPE'
             );
         }
     }
@@ -62,7 +63,8 @@ export class DocumentService {
         const maxSize = config.upload.maxFileSizeMB * 1024 * 1024;
         if (size > maxSize) {
             throw new ValidationError(
-                `File size exceeds maximum allowed size of ${config.upload.maxFileSizeMB}MB`
+                `File size exceeds maximum allowed size of ${config.upload.maxFileSizeMB}MB`,
+                'DOC_FILE_TOO_LARGE'
             );
         }
     }
@@ -106,7 +108,7 @@ export class DocumentService {
 
         const hasStorage = await userService.hasStorageAvailable(ownerId, size);
         if (!hasStorage) {
-            throw new ValidationError('Insufficient storage space');
+            throw new ValidationError('Insufficient storage space', 'DOC_STORAGE_FULL');
         }
 
         const key = this.generateStorageKey(ownerId, fileName);
@@ -139,7 +141,7 @@ export class DocumentService {
     ): Promise<DocumentResponse> {
         const exists = await this.storage.exists(key);
         if (!exists) {
-            throw new ValidationError('File not found in storage. Upload may have failed.');
+            throw new ValidationError('File not found in storage. Upload may have failed.', 'DOC_UPLOAD_FAILED');
         }
 
         const s3Metadata = await this.storage.getMetadata(key);
@@ -188,7 +190,7 @@ export class DocumentService {
 
         const hasStorage = await userService.hasStorageAvailable(ownerId, file.length);
         if (!hasStorage) {
-            throw new ValidationError('Insufficient storage space');
+            throw new ValidationError('Insufficient storage space', 'DOC_STORAGE_FULL');
         }
 
         const key = this.generateStorageKey(ownerId, fileName);
@@ -411,7 +413,7 @@ export class DocumentService {
 
         const hasStorage = await userService.hasStorageAvailable(ownerId, source.size);
         if (!hasStorage) {
-            throw new ValidationError('Insufficient storage space to copy this document.');
+            throw new ValidationError('Insufficient storage space to copy this document.', 'DOC_STORAGE_FULL');
         }
 
         const newKey = this.generateStorageKey(ownerId, source.originalName);

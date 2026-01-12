@@ -72,7 +72,6 @@ export class S3StorageAdapter implements IStorageAdapter {
       throw new Error(`Empty response body for key: ${key}`);
     }
 
-    // Convert stream to buffer
     const chunks: Uint8Array[] = [];
     const stream = response.Body as Readable;
 

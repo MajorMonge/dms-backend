@@ -36,14 +36,16 @@ export class NotFoundError extends AppError {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, details?: unknown) {
-    super(message, StatusCodes.BAD_REQUEST, 'VALIDATION_ERROR', true, details);
+  constructor(message: string, codeOrDetails?: string | unknown, details?: unknown) {
+    const code = typeof codeOrDetails === 'string' ? codeOrDetails : 'VALIDATION_ERROR';
+    const errorDetails = typeof codeOrDetails === 'string' ? details : codeOrDetails;
+    super(message, StatusCodes.BAD_REQUEST, code, true, errorDetails);
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message: string = 'Unauthorized') {
-    super(message, StatusCodes.UNAUTHORIZED, 'UNAUTHORIZED');
+  constructor(message: string = 'Unauthorized', code: string = 'UNAUTHORIZED') {
+    super(message, StatusCodes.UNAUTHORIZED, code);
   }
 }
 
@@ -54,8 +56,8 @@ export class ForbiddenError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string) {
-    super(message, StatusCodes.CONFLICT, 'CONFLICT');
+  constructor(message: string, code: string = 'CONFLICT') {
+    super(message, StatusCodes.CONFLICT, code);
   }
 }
 

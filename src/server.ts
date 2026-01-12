@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { config } from './config/index.js';
 import { logger } from './config/logger.js';
 import { MongoDBAdapter } from './adapters/database/index.js';
+import { pdfService } from './services/PdfService.js';
 
 const startServer = async (): Promise<void> => {
   // Initialize database adapter
@@ -13,6 +14,9 @@ const startServer = async (): Promise<void> => {
   try {
     // Connect to database
     await db.connect();
+
+    // Initialize PDF worker pool
+    await pdfService.initialize();
 
     // Create Express application
     const app = createApp();
@@ -32,6 +36,9 @@ const startServer = async (): Promise<void> => {
         logger.info('HTTP server closed');
 
         try {
+          // Shutdown PDF worker pool
+          await pdfService.shutdown();
+          
           await db.disconnect();
           process.exit(0);
         } catch (error) {

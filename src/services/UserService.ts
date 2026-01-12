@@ -234,7 +234,7 @@ export class UserService {
         const newStorageUsed = Math.max(0, user.storageUsed + bytesChange);
 
         if (bytesChange > 0 && newStorageUsed > user.storageLimit) {
-            throw new ValidationError('Storage limit exceeded');
+            throw new ValidationError('Storage limit exceeded', 'USER_STORAGE_LIMIT_EXCEEDED');
         }
 
         await UserModel.findByIdAndUpdate(userId, {

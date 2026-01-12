@@ -1,14 +1,3 @@
-/**
- * Authentication Service
- * 
- * Handles user authentication operations using AWS Cognito.
- * - User registration (sign up)
- * - User login (sign in)
- * - User logout (global sign out)
- * - Email verification
- * - Password reset
- */
-
 import {
     CognitoIdentityProviderClient,
     SignUpCommand,
@@ -130,15 +119,16 @@ export class AuthService {
             const cognitoError = error as { name?: string; message?: string };
             
             if (cognitoError.name === 'UsernameExistsException') {
-                throw new ConflictError('User with this email already exists');
+                throw new ConflictError('User with this email already exists', 'AUTH_USER_EXISTS');
             }
             if (cognitoError.name === 'InvalidPasswordException') {
                 throw new ValidationError(
-                    cognitoError.message || 'Password does not meet requirements'
+                    cognitoError.message || 'Password does not meet requirements',
+                    'AUTH_INVALID_PASSWORD'
                 );
             }
             if (cognitoError.name === 'InvalidParameterException') {
-                throw new ValidationError(cognitoError.message || 'Invalid parameters');
+                throw new ValidationError(cognitoError.message || 'Invalid parameters', 'AUTH_INVALID_PARAMS');
             }
 
             logger.error('Registration error:', error);
@@ -166,13 +156,13 @@ export class AuthService {
             const cognitoError = error as { name?: string; message?: string };
             
             if (cognitoError.name === 'CodeMismatchException') {
-                throw new ValidationError('Invalid verification code');
+                throw new ValidationError('Invalid verification code', 'AUTH_CODE_MISMATCH');
             }
             if (cognitoError.name === 'ExpiredCodeException') {
-                throw new ValidationError('Verification code has expired');
+                throw new ValidationError('Verification code has expired', 'AUTH_CODE_EXPIRED');
             }
             if (cognitoError.name === 'NotAuthorizedException') {
-                throw new ValidationError('User is already confirmed');
+                throw new ValidationError('User is already confirmed', 'AUTH_ALREADY_CONFIRMED');
             }
 
             logger.error('Email confirmation error:', error);
@@ -203,7 +193,7 @@ export class AuthService {
                 return { message: 'If the email exists, a verification code has been sent' };
             }
             if (cognitoError.name === 'LimitExceededException') {
-                throw new ValidationError('Too many attempts. Please try again later.');
+                throw new ValidationError('Too many attempts. Please try again later.', 'AUTH_RATE_LIMITED');
             }
 
             logger.error('Resend verification code error:', error);
@@ -228,14 +218,14 @@ export class AuthService {
             const response = await cognitoClient.send(command);
 
             if (!response.AuthenticationResult) {
-                throw new UnauthorizedError('Authentication failed');
+                throw new UnauthorizedError('Authentication failed', 'AUTH_FAILED');
             }
 
             const { AccessToken, IdToken, RefreshToken, ExpiresIn } =
                 response.AuthenticationResult;
 
             if (!AccessToken || !IdToken || !RefreshToken) {
-                throw new UnauthorizedError('Incomplete authentication response');
+                throw new UnauthorizedError('Incomplete authentication response', 'AUTH_INCOMPLETE');
             }
 
             const getUserCommand = new GetUserCommand({
@@ -272,15 +262,16 @@ export class AuthService {
             const cognitoError = error as { name?: string; message?: string };
             
             if (cognitoError.name === 'NotAuthorizedException') {
-                throw new UnauthorizedError('Invalid email or password');
+                throw new UnauthorizedError('Invalid email or password', 'AUTH_INVALID_CREDENTIALS');
             }
             if (cognitoError.name === 'UserNotConfirmedException') {
                 throw new UnauthorizedError(
-                    'Please verify your email before logging in'
+                    'Please verify your email before logging in',
+                    'AUTH_EMAIL_NOT_VERIFIED'
                 );
             }
             if (cognitoError.name === 'UserNotFoundException') {
-                throw new UnauthorizedError('Invalid email or password');
+                throw new UnauthorizedError('Invalid email or password', 'AUTH_INVALID_CREDENTIALS');
             }
 
             logger.error('Login error:', error);
@@ -341,7 +332,7 @@ export class AuthService {
                 };
             }
             if (cognitoError.name === 'LimitExceededException') {
-                throw new ValidationError('Too many attempts. Please try again later.');
+                throw new ValidationError('Too many attempts. Please try again later.', 'AUTH_RATE_LIMITED');
             }
 
             logger.error('Forgot password error:', error);
@@ -370,14 +361,15 @@ export class AuthService {
             const cognitoError = error as { name?: string; message?: string };
             
             if (cognitoError.name === 'CodeMismatchException') {
-                throw new ValidationError('Invalid reset code');
+                throw new ValidationError('Invalid reset code', 'AUTH_CODE_MISMATCH');
             }
             if (cognitoError.name === 'ExpiredCodeException') {
-                throw new ValidationError('Reset code has expired');
+                throw new ValidationError('Reset code has expired', 'AUTH_CODE_EXPIRED');
             }
             if (cognitoError.name === 'InvalidPasswordException') {
                 throw new ValidationError(
-                    cognitoError.message || 'Password does not meet requirements'
+                    cognitoError.message || 'Password does not meet requirements',
+                    'AUTH_INVALID_PASSWORD'
                 );
             }
 

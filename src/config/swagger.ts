@@ -1,6 +1,20 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import { config } from './index.js';
 
+const servers = config.isProduction && config.productionApiUrl
+  ? [
+      {
+        url: config.productionApiUrl,
+        description: 'Production server',
+      },
+    ]
+  : [
+      {
+        url: `http://localhost:${config.port}`,
+        description: 'Development server',
+      },
+    ];
+
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -20,16 +34,7 @@ const swaggerDefinition = {
       name: 'ISC',
     },
   },
-  servers: [
-    {
-      url: `http://localhost:${config.port}`,
-      description: 'Development server',
-    },
-    {
-      url: 'https://api.example.com',
-      description: 'Production server',
-    },
-  ],
+  servers,
   components: {
     securitySchemes: {
       bearerAuth: {

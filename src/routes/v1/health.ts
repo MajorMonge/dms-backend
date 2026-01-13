@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { MongoDBAdapter } from '../../adapters/database/index.js';
 import { config } from '../../config/index.js';
+import { cacheControl, cacheConfigs } from '../../middleware/index.js';
 
 const router = Router();
 
@@ -45,7 +46,7 @@ const router = Router();
  *                           type: string
  *                           example: connected
  */
-router.get('/', (_req: Request, res: Response) => {
+router.get('/', cacheControl(cacheConfigs.health), (_req: Request, res: Response) => {
   const db = MongoDBAdapter.getInstance();
 
   res.status(StatusCodes.OK).json({

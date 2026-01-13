@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import multer from 'multer';
 import { documentService } from '../../services/DocumentService';
-import { validate } from '../../middleware/validate';
+import { validate, cacheControl, setLastModified, cacheConfigs } from '../../middleware/index';
 import { authenticate } from '../../middleware/auth';
 import { config } from '../../config/index';
 import {
@@ -175,6 +175,8 @@ const upload = multer({
 router.get(
     '/',
     authenticate,
+    cacheControl(cacheConfigs.document_list),
+    setLastModified,
     validate({ query: listDocumentsQuerySchema }),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -312,6 +314,8 @@ router.get(
 router.get(
     '/search',
     authenticate,
+    cacheControl(cacheConfigs.document_search),
+    setLastModified,
     validate({ query: searchDocumentsQuerySchema }),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -645,6 +649,8 @@ router.delete(
 router.get(
     '/:id',
     authenticate,
+    cacheControl(cacheConfigs.document_detail),
+    setLastModified,
     validate({ params: idParamsSchema }),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -786,6 +792,7 @@ router.delete(
 router.get(
     '/:id/download',
     authenticate,
+    cacheControl(cacheConfigs.presigned_url),
     validate({ params: idParamsSchema }),
     async (req: Request, res: Response, next: NextFunction) => {
         try {

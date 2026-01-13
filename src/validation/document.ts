@@ -64,6 +64,25 @@ export const copyDocumentBodySchema = z.object({
     folderId: z.string().regex(objectIdRegex, 'Invalid folder ID').nullable().optional(),
 });
 
+export const searchDocumentsQuerySchema = z.object({
+    query: z.string().max(200).optional(),
+    name: z.string().max(100).optional(),
+    tags: z.union([z.string(), z.array(z.string())]).optional().transform(val =>
+        val ? (Array.isArray(val) ? val : val.split(',')) : undefined
+    ),
+    extension: z.string().max(10).optional(),
+    mimeType: z.string().max(100).optional(),
+    minSize: z.string().optional().transform(val => val ? parseInt(val, 10) : undefined),
+    maxSize: z.string().optional().transform(val => val ? parseInt(val, 10) : undefined),
+    dateFrom: z.string().datetime().optional(),
+    dateTo: z.string().datetime().optional(),
+    folderId: z.string().regex(objectIdRegex, 'Invalid folder ID').nullable().optional(),
+    page: z.string().optional().transform(val => val ? parseInt(val, 10) : 1),
+    limit: z.string().optional().transform(val => val ? Math.min(parseInt(val, 10), 100) : 20),
+    sortBy: z.enum(['name', 'createdAt', 'updatedAt', 'size', 'relevance']).optional().default('createdAt'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+});
+
 // Type exports
 export type CreateDocumentBody = z.infer<typeof createDocumentBodySchema>;
 export type UpdateDocumentBody = z.infer<typeof updateDocumentBodySchema>;
@@ -74,3 +93,4 @@ export type PresignedUploadBody = z.infer<typeof presignedUploadBodySchema>;
 export type ConfirmUploadBody = z.infer<typeof confirmUploadBodySchema>;
 export type MoveDocumentBody = z.infer<typeof moveDocumentBodySchema>;
 export type CopyDocumentBody = z.infer<typeof copyDocumentBodySchema>;
+export type SearchDocumentsQuery = z.infer<typeof searchDocumentsQuerySchema>;

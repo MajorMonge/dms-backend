@@ -7,15 +7,6 @@ terraform {
       version = "~> 5.0"
     }
   }
-
-  # Uncomment for remote state storage
-  # backend "s3" {
-  #   bucket         = "dms-terraform-state"
-  #   key            = "infrastructure/terraform.tfstate"
-  #   region         = "us-east-1"
-  #   encrypt        = true
-  #   dynamodb_table = "dms-terraform-locks"
-  # }
 }
 
 provider "aws" {
@@ -29,5 +20,3 @@ provider "aws" {
     }
   }
 }
-# Get current AWS account ID
-data "aws_caller_identity" "current" {}

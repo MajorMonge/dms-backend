@@ -171,6 +171,124 @@ npm run test:watch   # Run tests in watch mode
 npm run test:coverage # Run tests with coverage
 ```
 
+## LocalStack (Local AWS Development)
+
+LocalStack provides a local AWS environment for development and testing. In the free tier, only **S3** is available. Cognito requires LocalStack Pro.
+
+### Starting LocalStack
+
+```bash
+# Start LocalStack with dev profile
+docker-compose --profile dev up -d localstack
+```
+
+### What Gets Created Automatically
+
+When LocalStack starts, the init script creates:
+
+- **S3 Bucket**: `dms-documents-local` with versioning and CORS enabled
+
+### Using AWS CLI with LocalStack
+
+```bash
+# List S3 buckets
+aws --endpoint-url=http://localhost:4566 s3 ls
+
+# List objects in bucket
+aws --endpoint-url=http://localhost:4566 s3 ls s3://dms-documents-local
+
+# Upload a file
+aws --endpoint-url=http://localhost:4566 s3 cp myfile.pdf s3://dms-documents-local/
+
+# Check LocalStack health
+curl http://localhost:4566/_localstack/health
+```
+
+### Environment Variables for LocalStack
+
+Add these to your `.env` for local development with LocalStack:
+
+```env
+AWS_ENDPOINT_URL=http://localhost:4566
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+AWS_DEFAULT_REGION=us-east-2
+AWS_S3_BUCKET_NAME=dms-documents-local
+```
+
+### Cognito Alternatives
+
+Since Cognito is a LocalStack Pro feature, you have two options for authentication in local development:
+
+1. **Use Real AWS Cognito**: Set up Cognito using Terraform (see [Infrastructure Deployment](#infrastructure-deployment)) and configure your `.env` with real AWS credentials:
+   ```env
+   AWS_ACCESS_KEY_ID=your-real-key
+   AWS_SECRET_ACCESS_KEY=your-real-secret
+   AWS_COGNITO_USER_POOL_ID=us-east-2_xxxxx
+   AWS_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxx
+   ```
+
+2. **Use LocalStack Pro**: If you have a LocalStack Pro license:
+   ```bash
+   LOCALSTACK_API_KEY=your-key docker-compose --profile dev up -d localstack
+   ```
+
+## Running Tests
+
+The project uses Jest for testing with a dedicated test setup.
+
+### Prerequisites
+
+Make sure MongoDB is running before running tests:
+
+```bash
+docker-compose up -d mongo
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode (re-runs on file changes)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run specific test file
+npm test -- src/__tests__/routes/health.test.ts
+
+# Run tests matching a pattern
+npm test -- --testNamePattern="health"
+```
+
+### Test Structure
+
+```
+src/__tests__/
+├── setup.ts              # Global test setup (DB connection, cleanup)
+├── helpers/
+│   ├── auth.ts           # Authentication test helpers
+│   ├── db.ts             # Database test utilities
+│   └── request.ts        # HTTP request helpers
+└── routes/
+    ├── auth.test.ts      # Authentication endpoint tests
+    ├── documents.test.ts # Document management tests
+    ├── folders.test.ts   # Folder management tests
+    ├── health.test.ts    # Health check tests
+    └── users.test.ts     # User management tests
+```
+
+### Test Environment
+
+Tests use a separate MongoDB database to avoid conflicts with development data. The test setup handles:
+
+- Database connection before tests
+- Cleanup between test runs
+- Database disconnection after tests
+
 ## API Endpoints
 
 ### Health

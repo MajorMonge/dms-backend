@@ -457,6 +457,66 @@ export class AuthService {
             throw error;
         }
     }
+
+    /**
+     * Refresh access token using refresh token
+     */
+    async refreshToken(refreshToken: string): Promise<AuthTokens> {
+        try {
+            const command = new InitiateAuthCommand({
+                ClientId: config.cognito.clientId,
+                AuthFlow: AuthFlowType.REFRESH_TOKEN_AUTH,
+                AuthParameters: {
+                    REFRESH_TOKEN: refreshToken,
+                },
+            });
+
+            const response = await cognitoClient.send(command);
+
+            if (!response.AuthenticationResult) {
+                throw new UnauthorizedError('Token refresh failed', 'AUTH_REFRESH_FAILED');
+            }
+
+            const { AccessToken, IdToken, ExpiresIn } = response.AuthenticationResult;
+
+            if (!AccessToken || !IdToken) {
+                throw new UnauthorizedError('Incomplete token refresh response', 'AUTH_INCOMPLETE');
+            }
+
+            logger.info('Access token refreshed successfully');
+
+            // Note: Cognito doesn't return a new refresh token when using REFRESH_TOKEN_AUTH
+            // The original refresh token remains valid
+            return {
+                accessToken: AccessToken,
+                idToken: IdToken,
+                refreshToken: refreshToken, // Return the same refresh token
+                expiresIn: ExpiresIn || 3600,
+            };
+        } catch (error: unknown) {
+            const cognitoError = error as { name?: string; message?: string };
+            
+            if (cognitoError.name === 'NotAuthorizedException') {
+                throw new UnauthorizedError(
+                    'Invalid or expired refresh token. Please login again.',
+                    'AUTH_INVALID_REFRESH_TOKEN'
+                );
+            }
+
+            logger.error('Token refresh error:', {
+                error: error instanceof Error ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                } : error,
+                context: {
+                    operation: 'refreshToken',
+                },
+                timestamp: new Date().toISOString(),
+            });
+            throw error;
+        }
+    }
 }
 
 export const authService = new AuthService();

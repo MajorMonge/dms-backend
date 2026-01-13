@@ -86,12 +86,12 @@ export class PdfWorkerPool extends EventEmitter {
             try {
                 const isTypeScript = this.workerPath.endsWith('.ts');
                 
-                const workerFileUrl = pathToFileURL(this.workerPath).href;
+                const workerFileUrl = pathToFileURL(this.workerPath);
                 
                 const workerOptions = isTypeScript
                     ? {
                         eval: true,
-                        workerData: { workerPath: workerFileUrl },
+                        workerData: { workerPath: workerFileUrl.href },
                     }
                     : {};
                 

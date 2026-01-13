@@ -10,6 +10,7 @@ import {
     resendCodeBodySchema,
     forgotPasswordBodySchema,
     resetPasswordBodySchema,
+    refreshTokenBodySchema,
 } from '../../validation/auth';
 
 const router = Router();
@@ -265,6 +266,61 @@ router.post(
         try {
             const result = await authService.login(req.body);
             res.json({ success: true, data: result });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==================== Token Refresh ====================
+
+/**
+ * @swagger
+ * /api/v1/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     description: |
+ *       Use a refresh token to obtain new access and ID tokens.
+ *       This should be called when the access token expires (after 1 hour).
+ *       The refresh token itself remains valid for 30 days.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: The refresh token obtained from login
+ *     responses:
+ *       200:
+ *         description: New tokens issued successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tokens:
+ *                       $ref: '#/components/schemas/AuthTokens'
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post(
+    '/refresh',
+    validate({ body: refreshTokenBodySchema }),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const tokens = await authService.refreshToken(req.body.refreshToken);
+            res.json({ success: true, data: { tokens } });
         } catch (error) {
             next(error);
         }

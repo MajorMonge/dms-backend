@@ -69,12 +69,12 @@ resource "aws_ecs_task_definition" "app" {
         { name = "CORS_ORIGIN", value = var.CORS_ORIGIN },
       ]
 
-      secrets = var.MONGODB_URI != "" ? [
+      secrets = [
         {
           name      = "MONGODB_URI"
-          valueFrom = aws_ssm_parameter.mongodb_uri[0].arn
+          valueFrom = "arn:aws:ssm:${var.AWS_REGION}:${data.aws_caller_identity.current.account_id}:parameter/dms/${var.NODE_ENV}/MONGODB_URI"
         }
-      ] : []
+      ]
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -97,18 +97,6 @@ resource "aws_ecs_task_definition" "app" {
 
   tags = {
     Name = "${var.PROJECT_NAME}-api-task-${var.NODE_ENV}"
-  }
-}
-
-# SSM Parameter for MongoDB URI (if provided)
-resource "aws_ssm_parameter" "mongodb_uri" {
-  count = var.MONGODB_URI != "" ? 1 : 0
-  name  = "/${var.PROJECT_NAME}/${var.NODE_ENV}/mongodb-uri"
-  type  = "SecureString"
-  value = var.MONGODB_URI
-
-  tags = {
-    Name = "${var.PROJECT_NAME}-mongodb-uri-${var.NODE_ENV}"
   }
 }
 

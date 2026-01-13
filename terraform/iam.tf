@@ -40,7 +40,10 @@ resource "aws_iam_policy" "ssm_access" {
           "ssm:GetParameter",
           "ssm:GetParametersByPath"
         ]
-        Resource = "arn:aws:ssm:${var.AWS_REGION}:*:parameter/${var.PROJECT_NAME}/${var.NODE_ENV}/*"
+        Resource = [
+          "arn:aws:ssm:${var.AWS_REGION}:*:parameter/${var.PROJECT_NAME}/${var.NODE_ENV}/*",
+          "arn:aws:ssm:${var.AWS_REGION}:*:parameter/dms/${var.NODE_ENV}/*"
+        ]
       }
     ]
   })

@@ -144,7 +144,7 @@ Variables marked with `[TERRAFORM]` are shared between the application and Terra
    # Start MongoDB only
    docker-compose up -d mongo
 
-   # Start with dev tools (MongoDB Express)
+   # Start with dev tools (MongoDB Express, LocalStack)
    docker-compose --profile dev up -d
    ```
 
@@ -269,12 +269,6 @@ Get-Content .env | Where-Object { $_ -match '^(PROJECT_NAME|AWS_|NODE_ENV|CORS_)
 }
 ```
 
-**Windows CMD:**
-```cmd
-@REM Export .env vars as TF_VAR_ prefixed for Terraform
-for /f "tokens=1,2 delims==" %%a in ('findstr /r "^PROJECT_NAME= ^AWS_ ^NODE_ENV= ^CORS_" .env') do set TF_VAR_%%a=%%b
-```
-
 #### Deploy Infrastructure
 
 1. **Initialize Terraform:**
@@ -298,52 +292,14 @@ for /f "tokens=1,2 delims==" %%a in ('findstr /r "^PROJECT_NAME= ^AWS_ ^NODE_ENV
    ```
 
 4. **Update .env with Terraform outputs:**
-
-   **PowerShell:**
-   ```powershell
-   cd terraform
-   $poolId = terraform output -raw cognito_user_pool_id
-   $clientId = terraform output -raw cognito_client_id
-   $env = Get-Content ..\.env -Raw
-   $env = $env -replace 'AWS_COGNITO_USER_POOL_ID=.*', "AWS_COGNITO_USER_POOL_ID=$poolId"
-   $env = $env -replace 'AWS_COGNITO_CLIENT_ID=.*', "AWS_COGNITO_CLIENT_ID=$clientId"
-   $env | Set-Content ..\.env -NoNewline
-   ```
-
-   **Bash:**
    ```bash
+   # Get Cognito outputs and update .env
    cd terraform
-   sed -i "s/AWS_COGNITO_USER_POOL_ID=.*/AWS_COGNITO_USER_POOL_ID=$(terraform output -raw cognito_user_pool_id)/" ../.env
-   sed -i "s/AWS_COGNITO_CLIENT_ID=.*/AWS_COGNITO_CLIENT_ID=$(terraform output -raw cognito_client_id)/" ../.env
+   
+   # Bash
+   echo "AWS_COGNITO_USER_POOL_ID=$(terraform output -raw cognito_user_pool_id)" >> ../.env
+   echo "AWS_COGNITO_CLIENT_ID=$(terraform output -raw cognito_client_id)" >> ../.env
    ```
-
-5. **Import existing resources (if resources already exist in AWS):**
-   ```bash
-   # If you get "EntityAlreadyExists" errors, import existing resources:
-   terraform import aws_iam_role.ecs_instance_role dms-ecs-instance-role-development
-   terraform import aws_iam_policy.ssm_access arn:aws:iam::<ACCOUNT_ID>:policy/dms-ssm-access-development
-   terraform import aws_iam_policy.s3_access arn:aws:iam::<ACCOUNT_ID>:policy/dms-s3-access-development
-   terraform import aws_iam_policy.cognito_access arn:aws:iam::<ACCOUNT_ID>:policy/dms-cognito-access-development
-   terraform import aws_iam_policy.cloudwatch_logs arn:aws:iam::<ACCOUNT_ID>:policy/dms-cloudwatch-logs-development
-   terraform import aws_iam_instance_profile.ecs_instance dms-ecs-instance-profile-development
-   terraform import aws_autoscaling_group.ecs dms-ecs-asg-development
-   ```
-
-#### Recreate Infrastructure
-
-To destroy and recreate everything:
-
-```bash
-cd terraform
-
-# Destroy existing resources
-terraform destroy
-
-# Recreate
-terraform apply
-```
-
-> ⚠️ **Warning**: This will delete all data. Backup S3 buckets and databases first.
 
 ### Docker Deployment
 
@@ -352,71 +308,6 @@ Build and run the production container:
 ```bash
 docker build -t dms-backend .
 docker run -p 3000:3000 --env-file .env dms-backend
-```
-
-### Deploy to AWS ECS
-
-After Terraform infrastructure is created, deploy your application:
-
-**PowerShell:**
-```powershell
-# Set variables
-$AWS_REGION = "us-east-2"
-$ECR_URL = (terraform output -raw ecr_repository_url)
-$CLUSTER = (terraform output -raw ecs_cluster_name)
-$SERVICE = (terraform output -raw ecs_service_name)
-
-# Login to ECR
-aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL.Split('/')[0]
-
-# Build and push
-docker build -t dms-backend .
-docker tag dms-backend:latest ${ECR_URL}:latest
-docker push ${ECR_URL}:latest
-
-# Update ECS service
-aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --region $AWS_REGION
-```
-
-**Bash:**
-```bash
-# Set variables
-AWS_REGION="us-east-2"
-ECR_URL=$(terraform output -raw ecr_repository_url)
-CLUSTER=$(terraform output -raw ecs_cluster_name)
-SERVICE=$(terraform output -raw ecs_service_name)
-
-# Login to ECR
-aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $(echo $ECR_URL | cut -d'/' -f1)
-
-# Build and push
-docker build -t dms-backend .
-docker tag dms-backend:latest $ECR_URL:latest
-docker push $ECR_URL:latest
-
-# Update ECS service
-aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --region $AWS_REGION
-```
-
-### Terraform Outputs
-
-After `terraform apply`, the following outputs are available:
-
-| Output | Description |
-|--------|-------------|
-| `api_url` | API Gateway endpoint URL |
-| `cognito_user_pool_id` | Cognito User Pool ID |
-| `cognito_client_id` | Cognito App Client ID |
-| `cognito_domain` | Cognito hosted UI domain |
-| `s3_bucket_name` | S3 bucket for documents |
-| `ecr_repository_url` | ECR repository URL for Docker images |
-| `ecs_cluster_name` | ECS cluster name |
-| `ecs_service_name` | ECS service name |
-| `vpc_id` | VPC ID |
-
-View all outputs:
-```bash
-terraform output
 ```
 
 ## Adapter Pattern

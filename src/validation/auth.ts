@@ -68,6 +68,13 @@ export const resetPasswordBodySchema = z.object({
     newPassword: passwordSchema,
 });
 
+/**
+ * Schema for token refresh
+ */
+export const refreshTokenBodySchema = z.object({
+    refreshToken: z.string().min(1, 'Refresh token is required'),
+});
+
 // Exported types
 export type RegisterBody = z.infer<typeof registerBodySchema>;
 export type LoginBody = z.infer<typeof loginBodySchema>;
@@ -75,3 +82,4 @@ export type ConfirmEmailBody = z.infer<typeof confirmEmailBodySchema>;
 export type ResendCodeBody = z.infer<typeof resendCodeBodySchema>;
 export type ForgotPasswordBody = z.infer<typeof forgotPasswordBodySchema>;
 export type ResetPasswordBody = z.infer<typeof resetPasswordBodySchema>;
+export type RefreshTokenBody = z.infer<typeof refreshTokenBodySchema>;

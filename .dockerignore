@@ -1,45 +1,45 @@
 # flyctl launch added from .gitignore
 # Dependencies
-**\node_modules
+node_modules
 
 # Build output
-**\dist
+dist
 
 # Environment files
-**\.env
-**\.env.local
-**\.env.*.local
+.env
+.env.local
+.env.*.local
 
 # IDE
-**\.vscode
-**\.idea
-**\*.swp
-**\*.swo
+.vscode
+.idea
+*.swp
+*.swo
 
 # OS files
-**\.DS_Store
-**\Thumbs.db
+.DS_Store
+Thumbs.db
 
 # Logs
-**\logs
-**\*.log
-**\npm-debug.log*
+logs
+*.log
+npm-debug.log*
 
 # Test coverage
-**\coverage
+coverage
 
 # Terraform
-**\terraform\.terraform
-**\terraform\*.tfstate
-**\terraform\*.tfstate.*
-**\terraform\*.tfvars
-**\terraform\.terraform.lock.hcl
+terraform/.terraform
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+terraform/.terraform.lock.hcl
 
 # Docker
-**\docker-compose.override.yml
+docker-compose.override.yml
 
 # Temporary files
-**\tmp
-**\temp
-**\*.tmp
+tmp
+temp
+*.tmp
 fly.toml

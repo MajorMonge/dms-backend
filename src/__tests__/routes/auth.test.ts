@@ -3,6 +3,7 @@ import { app } from '../../app';
 import { apiRequest, withAuth, expectSuccess, expectError } from '../helpers/request';
 import { createAuthenticatedUser } from '../helpers/auth';
 import { authService } from '../../services/AuthService';
+import { UnauthorizedError } from '../../middleware/errorHandler';
 
 // Mock the auth service
 jest.mock('../../services/AuthService');
@@ -230,6 +231,65 @@ describe('Auth Routes', () => {
             await apiRequest(app)
                 .post('/api/v1/auth/logout')
                 .expect(StatusCodes.UNAUTHORIZED);
+        });
+    });
+
+    describe('POST /api/v1/auth/refresh', () => {
+        it('should refresh tokens successfully with valid refresh token', async () => {
+            const mockResponse = {
+                accessToken: 'new-access-token',
+                idToken: 'new-id-token',
+                refreshToken: 'same-refresh-token',
+                expiresIn: 3600,
+            };
+
+            mockedAuthService.refreshToken.mockResolvedValue(mockResponse);
+
+            const response = await apiRequest(app)
+                .post('/api/v1/auth/refresh')
+                .send({
+                    refreshToken: 'valid-refresh-token',
+                })
+                .expect(StatusCodes.OK);
+
+            const data = expectSuccess(response);
+            expect(data.tokens).toEqual(mockResponse);
+            expect(mockedAuthService.refreshToken).toHaveBeenCalledWith('valid-refresh-token');
+        });
+
+        it('should return validation error for missing refresh token', async () => {
+            const response = await apiRequest(app)
+                .post('/api/v1/auth/refresh')
+                .send({})
+                .expect(StatusCodes.BAD_REQUEST);
+
+            expectError(response, 'VALIDATION_ERROR');
+        });
+
+        it('should return validation error for empty refresh token', async () => {
+            const response = await apiRequest(app)
+                .post('/api/v1/auth/refresh')
+                .send({
+                    refreshToken: '',
+                })
+                .expect(StatusCodes.BAD_REQUEST);
+
+            expectError(response, 'VALIDATION_ERROR');
+        });
+
+        it('should return unauthorized for invalid refresh token', async () => {
+            mockedAuthService.refreshToken.mockRejectedValue(
+                new UnauthorizedError('Invalid refresh token', 'AUTH_INVALID_REFRESH_TOKEN')
+            );
+
+            const response = await apiRequest(app)
+                .post('/api/v1/auth/refresh')
+                .send({
+                    refreshToken: 'invalid-refresh-token',
+                })
+                .expect(StatusCodes.UNAUTHORIZED);
+
+            expectError(response);
         });
     });
 });

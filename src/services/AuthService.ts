@@ -135,7 +135,18 @@ export class AuthService {
                 throw new ValidationError(cognitoError.message || 'Invalid parameters', 'AUTH_INVALID_PARAMS');
             }
 
-            logger.error('Registration error:', error);
+            logger.error('Registration error:', {
+                error: error instanceof Error ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                } : error,
+                context: {
+                    email: data.email,
+                    operation: 'register',
+                },
+                timestamp: new Date().toISOString(),
+            });
             throw error;
         }
     }
@@ -169,7 +180,18 @@ export class AuthService {
                 throw new ValidationError('User is already confirmed', 'AUTH_ALREADY_CONFIRMED');
             }
 
-            logger.error('Email confirmation error:', error);
+            logger.error('Email confirmation error:', {
+                error: error instanceof Error ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                } : error,
+                context: {
+                    email: data.email,
+                    operation: 'confirmEmail',
+                },
+                timestamp: new Date().toISOString(),
+            });
             throw error;
         }
     }
@@ -200,7 +222,18 @@ export class AuthService {
                 throw new ValidationError('Too many attempts. Please try again later.', 'AUTH_RATE_LIMITED');
             }
 
-            logger.error('Resend verification code error:', error);
+            logger.error('Resend verification code error:', {
+                error: error instanceof Error ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                } : error,
+                context: {
+                    email: email,
+                    operation: 'resendVerificationCode',
+                },
+                timestamp: new Date().toISOString(),
+            });
             throw error;
         }
     }
@@ -278,7 +311,18 @@ export class AuthService {
                 throw new UnauthorizedError('Invalid email or password', 'AUTH_INVALID_CREDENTIALS');
             }
 
-            logger.error('Login error:', error);
+            logger.error('Login error:', {
+                error: error instanceof Error ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                } : error,
+                context: {
+                    email: data.email,
+                    operation: 'login',
+                },
+                timestamp: new Date().toISOString(),
+            });
             throw error;
         }
     }
@@ -305,7 +349,17 @@ export class AuthService {
                 return { message: 'Logged out successfully' };
             }
 
-            logger.error('Logout error:', error);
+            logger.error('Logout error:', {
+                error: error instanceof Error ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                } : error,
+                context: {
+                    operation: 'logout',
+                },
+                timestamp: new Date().toISOString(),
+            });
             throw error;
         }
     }
@@ -339,7 +393,18 @@ export class AuthService {
                 throw new ValidationError('Too many attempts. Please try again later.', 'AUTH_RATE_LIMITED');
             }
 
-            logger.error('Forgot password error:', error);
+            logger.error('Forgot password error:', {
+                error: error instanceof Error ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                } : error,
+                context: {
+                    email: data.email,
+                    operation: 'forgotPassword',
+                },
+                timestamp: new Date().toISOString(),
+            });
             throw error;
         }
     }
@@ -377,7 +442,18 @@ export class AuthService {
                 );
             }
 
-            logger.error('Reset password error:', error);
+            logger.error('Reset password error:', {
+                error: error instanceof Error ? {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                } : error,
+                context: {
+                    email: data.email,
+                    operation: 'resetPassword',
+                },
+                timestamp: new Date().toISOString(),
+            });
             throw error;
         }
     }

@@ -4,6 +4,7 @@ import jwksRsa from 'jwks-rsa';
 import { config } from '../config/index.js';
 import { UnauthorizedError } from './errorHandler.js';
 import { logger } from '../config/logger.js';
+import { UserModel } from '../models/User.js';
 
 // Extend Express Request to include user
 declare global {
@@ -16,6 +17,7 @@ declare global {
 
 export interface AuthenticatedUser {
   id: string;
+  cognitoId?: string;
   email: string;
   groups?: string[];
   [key: string]: unknown;
@@ -116,9 +118,21 @@ export const authenticate = async (
 
     let user: AuthenticatedUser;
 
-    // Use Cognito in production, local JWT in development
-    if (config.isProduction && config.cognito.userPoolId) {
-      user = await verifyCognitoToken(token);
+    if (config.cognito.userPoolId) {
+      const cognitoUser = await verifyCognitoToken(token);
+ 
+      const dbUser = await UserModel.findOne({ cognitoId: cognitoUser.id });
+      
+      if (!dbUser) {
+        throw new UnauthorizedError('User not found in database');
+      }
+
+      user = {
+        id: dbUser._id.toString(),
+        cognitoId: cognitoUser.id,
+        email: cognitoUser.email,
+        groups: cognitoUser.groups,
+      };
     } else {
       user = await verifyLocalToken(token);
     }
@@ -144,8 +158,18 @@ export const optionalAuth = async (
       const token = authHeader.split(' ')[1];
 
       if (token) {
-        if (config.isProduction && config.cognito.userPoolId) {
-          req.user = await verifyCognitoToken(token);
+        if (config.cognito.userPoolId) {
+          const cognitoUser = await verifyCognitoToken(token);
+          const dbUser = await UserModel.findOne({ cognitoId: cognitoUser.id });
+          
+          if (dbUser) {
+            req.user = {
+              id: dbUser._id.toString(),
+              cognitoId: cognitoUser.id,
+              email: cognitoUser.email,
+              groups: cognitoUser.groups,
+            };
+          }
         } else {
           req.user = await verifyLocalToken(token);
         }

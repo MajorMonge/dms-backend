@@ -19,8 +19,7 @@ import {
 } from '../middleware/errorHandler';
 import { UserService, userService } from './UserService';
 
-// Cognito client
-const cognitoClient = new CognitoIdentityProviderClient({
+const cognitoClientConfig: ConstructorParameters<typeof CognitoIdentityProviderClient>[0] = {
     region: config.aws.region,
     credentials: config.aws.accessKeyId && config.aws.secretAccessKey
         ? {
@@ -28,7 +27,13 @@ const cognitoClient = new CognitoIdentityProviderClient({
             secretAccessKey: config.aws.secretAccessKey,
         }
         : undefined,
-});
+};
+
+if (config.aws.endpointUrl) {
+    cognitoClientConfig.endpoint = config.aws.endpointUrl;
+}
+
+const cognitoClient = new CognitoIdentityProviderClient(cognitoClientConfig);
 
 // Types
 export interface RegisterDTO {

@@ -34,7 +34,7 @@ export class S3StorageAdapter implements IStorageAdapter {
   constructor(bucketName?: string) {
     this.bucketName = bucketName || config.s3.bucketName;
 
-    this.client = new S3Client({
+    const clientConfig: ConstructorParameters<typeof S3Client>[0] = {
       region: config.aws.region,
       credentials: config.aws.accessKeyId && config.aws.secretAccessKey
         ? {
@@ -42,7 +42,14 @@ export class S3StorageAdapter implements IStorageAdapter {
             secretAccessKey: config.aws.secretAccessKey,
           }
         : undefined,
-    });
+    };
+
+    if (config.aws.endpointUrl) {
+      clientConfig.endpoint = config.aws.endpointUrl;
+      clientConfig.forcePathStyle = true;
+    }
+
+    this.client = new S3Client(clientConfig);
   }
 
   async upload(key: string, body: Buffer | ReadableStream, options?: UploadOptions): Promise<string> {

@@ -140,7 +140,23 @@ export const authenticate = async (
     req.user = user;
     next();
   } catch (error) {
-    logger.debug('Authentication failed:', error);
+    logger.error('Authentication failed:', {
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      } : error,
+      request: {
+        method: req.method,
+        url: req.url,
+        headers: {
+          authorization: req.headers.authorization ? 'Bearer [REDACTED]' : undefined,
+          'user-agent': req.get('user-agent'),
+        },
+        ip: req.ip,
+      },
+      timestamp: new Date().toISOString(),
+    });
     next(new UnauthorizedError('Invalid or expired authentication token'));
   }
 };

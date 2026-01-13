@@ -38,16 +38,14 @@ export class S3StorageAdapter implements IStorageAdapter {
       region: config.aws.region,
       credentials: config.aws.accessKeyId && config.aws.secretAccessKey
         ? {
-            accessKeyId: config.aws.accessKeyId,
-            secretAccessKey: config.aws.secretAccessKey,
-          }
+          accessKeyId: config.aws.accessKeyId,
+          secretAccessKey: config.aws.secretAccessKey,
+        }
         : undefined,
+      ...(config.aws.endpointUrl && config.aws.endpointUrl.trim() !== ''
+        ? { endpoint: config.aws.endpointUrl }
+        : {}),
     };
-
-    if (config.aws.endpointUrl) {
-      clientConfig.endpoint = config.aws.endpointUrl;
-      clientConfig.forcePathStyle = true;
-    }
 
     this.client = new S3Client(clientConfig);
   }

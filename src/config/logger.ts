@@ -10,11 +10,11 @@ const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => 
   let log = `${timestamp} [${level}]: ${message}`;
 
   if (Object.keys(metadata).length > 0) {
-    log += ` ${JSON.stringify(metadata)}`;
+    log += `\n${JSON.stringify(metadata, null, 2)}`;
   }
 
   if (stack) {
-    log += `\n${stack}`;
+    log += `\n\nStack Trace:\n${stack}`;
   }
 
   return log;

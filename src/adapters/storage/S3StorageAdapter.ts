@@ -74,11 +74,9 @@ export class S3StorageAdapter implements IStorageAdapter {
       ContentType: options?.contentType,
       ContentLength: bodyBuffer.length,
       Metadata: options?.metadata,
-      ACL: options?.acl,
     });
 
     await this.client.send(command);
-    logger.debug(`File uploaded to S3: ${key}`);
     return key;
   }
 

@@ -17,6 +17,7 @@ jobs:
   terraform:
     name: Provision AWS Infrastructure
     runs-on: ubuntu-latest
+    environment: production
     outputs:
       s3_bucket_name: ${{ steps.tf-outputs.outputs.s3_bucket_name }}
       cognito_user_pool_id: ${{ steps.tf-outputs.outputs.cognito_user_pool_id }}
@@ -88,6 +89,7 @@ jobs:
   deploy:
     name: Deploy to Fly.io
     runs-on: ubuntu-latest
+    environment: production
     needs: terraform
 
     steps:

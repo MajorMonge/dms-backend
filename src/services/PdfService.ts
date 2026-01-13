@@ -149,7 +149,7 @@ export class PdfService {
                 metadata: {
                     ownerId,
                     sourceDocumentId: documentId,
-                    originalName: doc.originalName,
+                    originalName: encodeURIComponent(doc.originalName),
                     pages: split.pages.join(','),
                 },
             });

@@ -200,7 +200,7 @@ export class DocumentService {
             contentType: mimeType,
             metadata: {
                 ownerId,
-                originalName: fileName,
+                originalName: encodeURIComponent(fileName),
             },
         });
 

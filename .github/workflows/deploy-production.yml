@@ -105,6 +105,7 @@ jobs:
             NODE_ENV=production \
             PORT=3000 \
             API_VERSION=v1 \
+            PRODUCTION_API_URL="${{ secrets.PRODUCTION_API_URL }}" \
             MONGODB_URI="${{ secrets.MONGODB_URI }}" \
             MONGODB_DB_NAME=dms \
             AWS_REGION=${{ env.AWS_REGION }} \

@@ -34,7 +34,9 @@ export class S3StorageAdapter implements IStorageAdapter {
   constructor(bucketName?: string) {
     this.bucketName = bucketName || config.s3.bucketName;
 
-    const clientConfig: ConstructorParameters<typeof S3Client>[0] = {
+    const isLocalStack = !!(config.aws.endpointUrl && config.aws.endpointUrl.trim() !== '');
+
+    this.client = new S3Client({
       region: config.aws.region,
       credentials: config.aws.accessKeyId && config.aws.secretAccessKey
         ? {
@@ -42,20 +44,35 @@ export class S3StorageAdapter implements IStorageAdapter {
           secretAccessKey: config.aws.secretAccessKey,
         }
         : undefined,
-      ...(config.aws.endpointUrl && config.aws.endpointUrl.trim() !== ''
+      // Use path style for LocalStack, virtual hosted style for real S3
+      forcePathStyle: isLocalStack,
+      ...(isLocalStack
         ? { endpoint: config.aws.endpointUrl }
         : {}),
-    };
-
-    this.client = new S3Client(clientConfig);
+    });
   }
 
   async upload(key: string, body: Buffer | ReadableStream, options?: UploadOptions): Promise<string> {
+    let bodyBuffer: Buffer;
+    if (body instanceof Buffer) {
+      bodyBuffer = body;
+    } else {
+      const chunks: Uint8Array[] = [];
+      const reader = (body as ReadableStream).getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      bodyBuffer = Buffer.concat(chunks);
+    }
+
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
-      Body: body instanceof Buffer ? body : Readable.fromWeb(body as any),
+      Body: bodyBuffer,
       ContentType: options?.contentType,
+      ContentLength: bodyBuffer.length,
       Metadata: options?.metadata,
       ACL: options?.acl,
     });

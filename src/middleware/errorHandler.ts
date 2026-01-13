@@ -75,15 +75,43 @@ interface ErrorResponse {
 // Global error handler middleware
 export const errorHandler = (
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void => {
-  logger.error('Error caught by global handler:', {
-    name: err.name,
-    message: err.message,
-    stack: err.stack,
-  });
+  // Enhanced error logging with request context
+  const errorContext = {
+    error: {
+      name: err.name,
+      message: err.message,
+      code: (err as any).code,
+      statusCode: (err as AppError).statusCode,
+      isOperational: (err as AppError).isOperational,
+      details: (err as AppError).details,
+      stack: err.stack,
+    },
+    request: {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      query: req.query,
+      params: req.params,
+      body: req.body && Object.keys(req.body).length > 0 ? req.body : undefined,
+      headers: {
+        'content-type': req.get('content-type'),
+        'user-agent': req.get('user-agent'),
+        'x-forwarded-for': req.get('x-forwarded-for'),
+      },
+      user: req.user ? { id: req.user.id, email: req.user.email } : undefined,
+      ip: req.ip,
+    },
+    timestamp: new Date().toISOString(),
+  };
+
+  // Create a descriptive error summary for quick identification
+  const errorSummary = `${err.name || 'Error'} on ${req.method} ${req.path}: ${err.message}`;
+  
+  logger.error(errorSummary, errorContext);
 
   if (err instanceof ZodError) {
     const response: ErrorResponse = {

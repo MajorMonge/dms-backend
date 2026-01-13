@@ -14,6 +14,7 @@ import {
     confirmUploadBodySchema,
     moveDocumentBodySchema,
     copyDocumentBodySchema,
+    searchDocumentsQuerySchema,
 } from '../../validation/document';
 
 const router = Router();
@@ -134,7 +135,7 @@ const upload = multer({
  *         name: search
  *         schema:
  *           type: string
- *         description: Search in name and tags
+ *         description: Search in name, tags, and extension
  *       - in: query
  *         name: page
  *         schema:
@@ -178,6 +179,143 @@ router.get(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const result = await documentService.list(req.user!.id, req.query as any);
+            res.json({ success: true, data: result });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/documents/search:
+ *   get:
+ *     summary: Search documents with advanced filters
+ *     tags: [Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         description: Search across name, originalName, tags, and extension (e.g., 'budget pdf' finds files with budget in name and pdf extension)
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Filter by document name
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Filter by tags (comma-separated)
+ *       - in: query
+ *         name: extension
+ *         schema:
+ *           type: string
+ *         description: Filter by file extension (e.g., pdf, docx)
+ *       - in: query
+ *         name: mimeType
+ *         schema:
+ *           type: string
+ *         description: Filter by MIME type
+ *       - in: query
+ *         name: minSize
+ *         schema:
+ *           type: integer
+ *         description: Minimum file size in bytes
+ *       - in: query
+ *         name: maxSize
+ *         schema:
+ *           type: integer
+ *         description: Maximum file size in bytes
+ *       - in: query
+ *         name: dateFrom
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter documents created from this date
+ *       - in: query
+ *         name: dateTo
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter documents created until this date
+ *       - in: query
+ *         name: folderId
+ *         schema:
+ *           type: string
+ *         description: Filter by folder ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [name, createdAt, updatedAt, size, relevance]
+ *           default: createdAt
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *     responses:
+ *       200:
+ *         description: Search results with metadata
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     documents:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Document'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: number
+ *                         limit:
+ *                           type: number
+ *                         total:
+ *                           type: number
+ *                         totalPages:
+ *                           type: number
+ *                     searchMeta:
+ *                       type: object
+ *                       properties:
+ *                         query:
+ *                           type: string
+ *                         resultsFound:
+ *                           type: number
+ *                         searchTime:
+ *                           type: number
+ *                           description: Search execution time in milliseconds
+ */
+router.get(
+    '/search',
+    authenticate,
+    validate({ query: searchDocumentsQuerySchema }),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await documentService.search(req.user!.id, req.query as any);
             res.json({ success: true, data: result });
         } catch (error) {
             next(error);

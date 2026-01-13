@@ -27,11 +27,10 @@ const cognitoClientConfig: ConstructorParameters<typeof CognitoIdentityProviderC
             secretAccessKey: config.aws.secretAccessKey,
         }
         : undefined,
+    ...(config.aws.endpointUrl && config.aws.endpointUrl.trim() !== ''
+        ? { endpoint: config.aws.endpointUrl }
+        : {}),
 };
-
-if (config.aws.endpointUrl) {
-    cognitoClientConfig.endpoint = config.aws.endpointUrl;
-}
 
 const cognitoClient = new CognitoIdentityProviderClient(cognitoClientConfig);
 

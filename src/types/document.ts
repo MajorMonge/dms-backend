@@ -38,6 +38,38 @@ export interface DocumentListQuery {
     sortOrder?: 'asc' | 'desc';
 }
 
+export interface DocumentSearchQuery {
+    query?: string;
+    name?: string;
+    tags?: string[];
+    extension?: string;
+    mimeType?: string;
+    minSize?: number;
+    maxSize?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    folderId?: string | null;
+    page?: number;
+    limit?: number;
+    sortBy?: 'name' | 'createdAt' | 'updatedAt' | 'size' | 'relevance';
+    sortOrder?: 'asc' | 'desc';
+}
+
+export interface DocumentSearchResponse {
+    documents: DocumentResponse[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+    searchMeta?: {
+        query: string;
+        resultsFound: number;
+        searchTime: number;
+    };
+}
+
 export interface DocumentListResponse {
     documents: DocumentResponse[];
     pagination: {

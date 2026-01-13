@@ -2,32 +2,19 @@
 
 A cloud-based Document Management System backend built with Node.js, TypeScript, Express, and MongoDB.
 
-## Architecture
-
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│     UI      │────▶│   Backend   │────▶│   AWS S3    │
-│  (Next.js)  │     │  (Express)  │     │  (Storage)  │
-└─────────────┘     └──────┬──────┘     └─────────────┘
-                          │
-       ┌──────────────────┼──────────────────┐
-       │                  │                  │
-       ▼                  ▼                  ▼
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│AWS Cognito  │    │  MongoDB    │    │  Processing │
-│   (Auth)    │    │ (Metadata)  │    │   (Queue)   │
-└─────────────┘    └─────────────┘    └─────────────┘
-```
-
 ## Features
 
-- **Document Storage**: Secure document storage with AWS S3
-- **Authentication**: JWT-based auth with AWS Cognito integration
+- **Document Management**: Full CRUD operations with presigned uploads, soft delete, trash, and restore
+- **Folder Management**: Hierarchical folder structure with path tracking and folder trees
+- **PDF Processing**: Split PDFs by pages, ranges, or chunks with background worker pool
+- **Authentication**: JWT-based auth with AWS Cognito (register, login, email verification, password reset)
+- **User Management**: User profiles with storage tracking and admin controls
+- **Secure Storage**: AWS S3 with presigned URLs for uploads and downloads
 - **Metadata Management**: MongoDB for document/folder metadata
 - **Adapter Pattern**: Abstracted database and storage layers
 - **API Documentation**: Swagger/OpenAPI documentation
 - **Docker Support**: Containerized development environment
-- **Infrastructure as Code**: Terraform for AWS resources
+- **Infrastructure as Code**: Terraform for AWS resources (VPC, ECS, ECR, API Gateway, Cognito, S3)
 
 ## Tech Stack
 
@@ -37,6 +24,7 @@ A cloud-based Document Management System backend built with Node.js, TypeScript,
 - **Database**: MongoDB 7.x (via Mongoose)
 - **Storage**: AWS S3
 - **Authentication**: AWS Cognito
+- **PDF Processing**: pdf-lib
 - **Documentation**: Swagger/OpenAPI 3.0
 - **Validation**: Zod
 - **Logging**: Winston
@@ -51,31 +39,52 @@ src/
 │   └── storage/        # S3 storage adapter implementation
 ├── config/             # Configuration files
 │   ├── index.ts        # Main configuration
-│   ├── database.ts     # Database connection
 │   ├── logger.ts       # Winston logger setup
 │   └── swagger.ts      # Swagger documentation
 ├── middleware/         # Express middleware
-│   ├── auth.ts         # Authentication middleware
+│   ├── auth.ts         # Authentication middleware (Cognito JWT)
 │   ├── errorHandler.ts # Global error handling
-│   ├── validate.ts     # Request validation
-│   └── httpLogger.ts   # HTTP request logging
-├── models/             # Mongoose models (to be added)
-├── routes/             # API routes
-├── services/           # Business logic (to be added)
+│   ├── validate.ts     # Zod request validation
+│   ├── httpLogger.ts   # HTTP request logging
+│   └── notFoundHandler.ts # 404 handling
+├── models/             # Mongoose models
+│   ├── Document.ts     # Document metadata model
+│   ├── Folder.ts       # Folder hierarchy model
+│   └── User.ts         # User profile model
+├── routes/v1/          # API routes
+│   ├── auth.ts         # Authentication endpoints
+│   ├── documents.ts    # Document management endpoints
+│   ├── folders.ts      # Folder management endpoints
+│   ├── users.ts        # User profile endpoints
+│   ├── pdf.ts          # PDF processing endpoints
+│   └── health.ts       # Health check endpoints
+├── services/           # Business logic
+│   ├── AuthService.ts      # Cognito authentication
+│   ├── DocumentService.ts  # Document operations
+│   ├── FolderService.ts    # Folder operations
+│   ├── UserService.ts      # User management
+│   └── PdfService.ts       # PDF processing
+├── workers/            # Background workers
+│   ├── pdfWorker.ts        # PDF split worker
+│   └── PdfWorkerPool.ts    # Worker pool manager
+├── validation/         # Zod schemas
 ├── types/              # TypeScript type definitions
 ├── app.ts              # Express application setup
 └── server.ts           # Server entry point
 
 terraform/              # Infrastructure as Code
 ├── main.tf             # Main Terraform configuration
+├── vpc.tf              # VPC and networking
+├── ecs.tf              # ECS cluster and service
+├── ecr.tf              # Container registry
+├── ec2.tf              # EC2 instances
+├── api_gateway.tf      # API Gateway configuration
 ├── s3.tf               # S3 bucket configuration
 ├── cognito.tf          # Cognito user pool setup
 ├── iam.tf              # IAM roles and policies
-└── environments/       # Environment-specific vars
-
-scripts/                # Utility scripts
-├── mongo-init.js       # MongoDB initialization
-└── localstack-init.sh  # LocalStack AWS setup
+├── security_groups.tf  # Security group rules
+├── variables.tf        # Input variables
+└── outputs.tf          # Output values
 ```
 
 ## Getting Started
@@ -135,7 +144,7 @@ Variables marked with `[TERRAFORM]` are shared between the application and Terra
    # Start MongoDB only
    docker-compose up -d mongo
 
-   # Start with dev tools (MongoDB Express, LocalStack)
+   # Start with dev tools (MongoDB Express)
    docker-compose --profile dev up -d
    ```
 
@@ -169,28 +178,77 @@ npm run test:coverage # Run tests with coverage
 - `GET /api/v1/health/ready` - Readiness probe
 - `GET /api/v1/health/live` - Liveness probe
 
-### Documents (Coming Soon)
-- `GET /api/v1/documents` - List documents
-- `POST /api/v1/documents` - Upload document
-- `GET /api/v1/documents/:id` - Get document
-- `PUT /api/v1/documents/:id` - Update document
-- `DELETE /api/v1/documents/:id` - Delete document
-- `GET /api/v1/documents/:id/download` - Download document
+### Authentication
+- `POST /api/v1/auth/register` - Register new user
+- `POST /api/v1/auth/confirm-email` - Confirm email with verification code
+- `POST /api/v1/auth/resend-code` - Resend verification code
+- `POST /api/v1/auth/login` - Login and get tokens
+- `POST /api/v1/auth/logout` - Logout (requires auth)
+- `POST /api/v1/auth/forgot-password` - Request password reset
+- `POST /api/v1/auth/reset-password` - Reset password with code
 
-### Folders (Coming Soon)
+### Documents
+- `GET /api/v1/documents` - List user documents
+- `POST /api/v1/documents/upload` - Direct file upload
+- `POST /api/v1/documents/upload/presigned` - Get presigned upload URL
+- `POST /api/v1/documents/upload/confirm` - Confirm presigned upload
+- `GET /api/v1/documents/trash` - List documents in trash
+- `GET /api/v1/documents/:id` - Get document details
+- `PATCH /api/v1/documents/:id` - Update document metadata
+- `DELETE /api/v1/documents/:id` - Soft delete document
+- `DELETE /api/v1/documents/:id/permanent` - Permanently delete
+- `GET /api/v1/documents/:id/download` - Get presigned download URL
+- `POST /api/v1/documents/:id/move` - Move to different folder
+- `POST /api/v1/documents/:id/copy` - Copy document
+- `POST /api/v1/documents/:id/restore` - Restore from trash
+
+### Folders
 - `GET /api/v1/folders` - List folders
 - `POST /api/v1/folders` - Create folder
-- `GET /api/v1/folders/:id` - Get folder
-- `PUT /api/v1/folders/:id` - Update folder
-- `DELETE /api/v1/folders/:id` - Delete folder
+- `GET /api/v1/folders/tree` - Get folder hierarchy tree
+- `GET /api/v1/folders/trash` - List folders in trash
+- `GET /api/v1/folders/:id` - Get folder details
+- `GET /api/v1/folders/:id/subfolders` - Get direct subfolders
+- `GET /api/v1/folders/:id/breadcrumb` - Get folder breadcrumb path
+- `GET /api/v1/folders/:id/contents` - Get folder contents (documents + subfolders)
+- `PATCH /api/v1/folders/:id` - Update folder
+- `POST /api/v1/folders/:id/move` - Move to different parent
+- `DELETE /api/v1/folders/:id` - Soft delete folder
+- `POST /api/v1/folders/:id/restore` - Restore from trash
+- `DELETE /api/v1/folders/:id/permanent` - Permanently delete
 
-### Processing (Coming Soon)
-- `POST /api/v1/processing/pdf-split` - Split PDF
-- `GET /api/v1/processing/jobs/:id` - Get job status
+### Users
+- `GET /api/v1/users/me` - Get current user profile
+- `PATCH /api/v1/users/me` - Update current user metadata
+- `GET /api/v1/users/me/storage` - Get storage usage info
+- `GET /api/v1/users` - List users (admin only)
+- `GET /api/v1/users/:id` - Get user by ID (admin only)
+- `PATCH /api/v1/users/:id` - Update user (admin only)
+- `DELETE /api/v1/users/:id` - Delete user (admin only)
+
+### PDF Processing
+- `GET /api/v1/pdf/:id/info` - Get PDF metadata (page count, author, etc.)
+- `POST /api/v1/pdf/:id/split` - Split PDF (modes: all, ranges, chunks, extract)
+- `GET /api/v1/pdf/workers/stats` - Get worker pool statistics
+- `GET /api/v1/pdf/jobs` - Get all user jobs
+- `GET /api/v1/pdf/jobs/queued` - Get queued jobs
+- `GET /api/v1/pdf/jobs/:jobId` - Get job status
+- `POST /api/v1/pdf/jobs/:jobId/cancel` - Cancel job
+- `DELETE /api/v1/pdf/jobs/:jobId` - Delete/cancel job
 
 ## Infrastructure Deployment
 
 ### Using Terraform
+
+The `terraform/` directory contains complete AWS infrastructure setup including:
+- **VPC**: Networking with public/private subnets
+- **ECS**: Container orchestration for the API
+- **ECR**: Container registry for Docker images
+- **API Gateway**: HTTP API with routes
+- **S3**: Document storage bucket
+- **Cognito**: User authentication pool
+- **IAM**: Roles and policies
+- **Security Groups**: Network access control
 
 Terraform variables are named to match `.env` so you can load them directly using `TF_VAR_` prefix.
 
@@ -240,14 +298,52 @@ for /f "tokens=1,2 delims==" %%a in ('findstr /r "^PROJECT_NAME= ^AWS_ ^NODE_ENV
    ```
 
 4. **Update .env with Terraform outputs:**
-   ```bash
-   # Get Cognito outputs and update .env
+
+   **PowerShell:**
+   ```powershell
    cd terraform
-   
-   # Bash
-   echo "AWS_COGNITO_USER_POOL_ID=$(terraform output -raw cognito_user_pool_id)" >> ../.env
-   echo "AWS_COGNITO_CLIENT_ID=$(terraform output -raw cognito_client_id)" >> ../.env
+   $poolId = terraform output -raw cognito_user_pool_id
+   $clientId = terraform output -raw cognito_client_id
+   $env = Get-Content ..\.env -Raw
+   $env = $env -replace 'AWS_COGNITO_USER_POOL_ID=.*', "AWS_COGNITO_USER_POOL_ID=$poolId"
+   $env = $env -replace 'AWS_COGNITO_CLIENT_ID=.*', "AWS_COGNITO_CLIENT_ID=$clientId"
+   $env | Set-Content ..\.env -NoNewline
    ```
+
+   **Bash:**
+   ```bash
+   cd terraform
+   sed -i "s/AWS_COGNITO_USER_POOL_ID=.*/AWS_COGNITO_USER_POOL_ID=$(terraform output -raw cognito_user_pool_id)/" ../.env
+   sed -i "s/AWS_COGNITO_CLIENT_ID=.*/AWS_COGNITO_CLIENT_ID=$(terraform output -raw cognito_client_id)/" ../.env
+   ```
+
+5. **Import existing resources (if resources already exist in AWS):**
+   ```bash
+   # If you get "EntityAlreadyExists" errors, import existing resources:
+   terraform import aws_iam_role.ecs_instance_role dms-ecs-instance-role-development
+   terraform import aws_iam_policy.ssm_access arn:aws:iam::<ACCOUNT_ID>:policy/dms-ssm-access-development
+   terraform import aws_iam_policy.s3_access arn:aws:iam::<ACCOUNT_ID>:policy/dms-s3-access-development
+   terraform import aws_iam_policy.cognito_access arn:aws:iam::<ACCOUNT_ID>:policy/dms-cognito-access-development
+   terraform import aws_iam_policy.cloudwatch_logs arn:aws:iam::<ACCOUNT_ID>:policy/dms-cloudwatch-logs-development
+   terraform import aws_iam_instance_profile.ecs_instance dms-ecs-instance-profile-development
+   terraform import aws_autoscaling_group.ecs dms-ecs-asg-development
+   ```
+
+#### Recreate Infrastructure
+
+To destroy and recreate everything:
+
+```bash
+cd terraform
+
+# Destroy existing resources
+terraform destroy
+
+# Recreate
+terraform apply
+```
+
+> ⚠️ **Warning**: This will delete all data. Backup S3 buckets and databases first.
 
 ### Docker Deployment
 
@@ -258,35 +354,93 @@ docker build -t dms-backend .
 docker run -p 3000:3000 --env-file .env dms-backend
 ```
 
+### Deploy to AWS ECS
+
+After Terraform infrastructure is created, deploy your application:
+
+**PowerShell:**
+```powershell
+# Set variables
+$AWS_REGION = "us-east-2"
+$ECR_URL = (terraform output -raw ecr_repository_url)
+$CLUSTER = (terraform output -raw ecs_cluster_name)
+$SERVICE = (terraform output -raw ecs_service_name)
+
+# Login to ECR
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL.Split('/')[0]
+
+# Build and push
+docker build -t dms-backend .
+docker tag dms-backend:latest ${ECR_URL}:latest
+docker push ${ECR_URL}:latest
+
+# Update ECS service
+aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --region $AWS_REGION
+```
+
+**Bash:**
+```bash
+# Set variables
+AWS_REGION="us-east-2"
+ECR_URL=$(terraform output -raw ecr_repository_url)
+CLUSTER=$(terraform output -raw ecs_cluster_name)
+SERVICE=$(terraform output -raw ecs_service_name)
+
+# Login to ECR
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $(echo $ECR_URL | cut -d'/' -f1)
+
+# Build and push
+docker build -t dms-backend .
+docker tag dms-backend:latest $ECR_URL:latest
+docker push $ECR_URL:latest
+
+# Update ECS service
+aws ecs update-service --cluster $CLUSTER --service $SERVICE --force-new-deployment --region $AWS_REGION
+```
+
+### Terraform Outputs
+
+After `terraform apply`, the following outputs are available:
+
+| Output | Description |
+|--------|-------------|
+| `api_url` | API Gateway endpoint URL |
+| `cognito_user_pool_id` | Cognito User Pool ID |
+| `cognito_client_id` | Cognito App Client ID |
+| `cognito_domain` | Cognito hosted UI domain |
+| `s3_bucket_name` | S3 bucket for documents |
+| `ecr_repository_url` | ECR repository URL for Docker images |
+| `ecs_cluster_name` | ECS cluster name |
+| `ecs_service_name` | ECS service name |
+| `vpc_id` | VPC ID |
+
+View all outputs:
+```bash
+terraform output
+```
+
 ## Adapter Pattern
 
 The application uses the Adapter Pattern for database and storage operations, allowing easy swapping of implementations:
 
-### Database Adapter
-```typescript
-interface IDatabaseAdapter<T> {
-  findById(id: string): Promise<T | null>;
-  findOne(query: Partial<T>): Promise<T | null>;
-  findMany(query: Partial<T>, options?: QueryOptions): Promise<T[]>;
-  create(data: CreateDTO): Promise<T>;
-  updateById(id: string, data: UpdateDTO): Promise<T | null>;
-  deleteById(id: string): Promise<boolean>;
-  // ... more methods
-}
-```
+- **Database Adapter**: `IDatabaseAdapter` interface with MongoDB implementation
+- **Storage Adapter**: `IStorageAdapter` interface with S3 implementation
 
-### Storage Adapter
-```typescript
-interface IStorageAdapter {
-  upload(key: string, body: Buffer, options?: UploadOptions): Promise<string>;
-  download(key: string): Promise<Buffer>;
-  delete(key: string): Promise<boolean>;
-  getPresignedDownloadUrl(key: string): Promise<string>;
-  getPresignedUploadUrl(key: string): Promise<string>;
-  // ... more methods
-}
-```
+This design enables:
+- Easy testing with mock implementations
+- Switching providers without changing business logic
+- Consistent interface across different backends
 
-## License
+## PDF Split Modes
 
-ISC
+The PDF processing service supports multiple split modes:
+
+| Mode | Description | Example |
+|------|-------------|---------|
+| `all` | Split each page into separate PDF | Creates N documents from N pages |
+| `ranges` | Split by page ranges | `[{start: 1, end: 5}, {start: 6, end: 10}]` |
+| `chunks` | Split into fixed-size chunks | `chunkSize: 5` creates docs of 5 pages each |
+| `extract` | Extract specific pages | `pages: [1, 3, 5, 7]` into single document |
+
+Jobs run in a background worker pool and can be monitored via the `/pdf/jobs` endpoints.
+

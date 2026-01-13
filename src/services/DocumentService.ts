@@ -324,7 +324,13 @@ export class DocumentService {
         }
 
         if (search) {
-            filter.$text = { $search: search };
+            // Use regex for flexible searching across name, originalName, tags, and extension
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { originalName: { $regex: search, $options: 'i' } },
+                { tags: { $regex: search, $options: 'i' } },
+                { extension: { $regex: search, $options: 'i' } },
+            ];
         }
 
         // Count total
@@ -346,6 +352,158 @@ export class DocumentService {
                 total,
                 totalPages: Math.ceil(total / limit),
             },
+        };
+    }
+
+    /**
+     * Search documents with advanced filters
+     */
+    async search(
+        ownerId: string,
+        searchQuery: {
+            query?: string;
+            name?: string;
+            tags?: string[];
+            extension?: string;
+            mimeType?: string;
+            minSize?: number;
+            maxSize?: number;
+            dateFrom?: string;
+            dateTo?: string;
+            folderId?: string | null;
+            page?: number;
+            limit?: number;
+            sortBy?: 'name' | 'createdAt' | 'updatedAt' | 'size' | 'relevance';
+            sortOrder?: 'asc' | 'desc';
+        }
+    ): Promise<{
+        documents: DocumentResponse[];
+        pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+        };
+        searchMeta?: {
+            query: string;
+            resultsFound: number;
+            searchTime: number;
+        };
+    }> {
+        const startTime = Date.now();
+        const {
+            query,
+            name,
+            tags,
+            extension,
+            mimeType,
+            minSize,
+            maxSize,
+            dateFrom,
+            dateTo,
+            folderId,
+            page = 1,
+            limit = 20,
+            sortBy = 'createdAt',
+            sortOrder = 'desc',
+        } = searchQuery;
+
+        // Build filter
+        const filter: Record<string, unknown> = {
+            ownerId,
+            isDeleted: false,
+        };
+
+        // General query search across multiple fields
+        if (query) {
+            const searchRegex = { $regex: query, $options: 'i' };
+            filter.$or = [
+                { name: searchRegex },
+                { originalName: searchRegex },
+                { tags: searchRegex },
+                { extension: searchRegex },
+            ];
+        }
+
+        // Specific field searches
+        if (name) {
+            filter.name = { $regex: name, $options: 'i' };
+        }
+
+        if (tags && tags.length > 0) {
+            filter.tags = { $in: tags }; // At least one tag matches
+        }
+
+        if (extension) {
+            filter.extension = extension.toLowerCase();
+        }
+
+        if (mimeType) {
+            filter.mimeType = { $regex: mimeType, $options: 'i' };
+        }
+
+        // Size range filter
+        if (minSize !== undefined || maxSize !== undefined) {
+            filter.size = {};
+            if (minSize !== undefined) {
+                (filter.size as Record<string, unknown>).$gte = minSize;
+            }
+            if (maxSize !== undefined) {
+                (filter.size as Record<string, unknown>).$lte = maxSize;
+            }
+        }
+
+        // Date range filter
+        if (dateFrom || dateTo) {
+            filter.createdAt = {};
+            if (dateFrom) {
+                (filter.createdAt as Record<string, unknown>).$gte = new Date(dateFrom);
+            }
+            if (dateTo) {
+                (filter.createdAt as Record<string, unknown>).$lte = new Date(dateTo);
+            }
+        }
+
+        // Folder filter
+        if (folderId !== undefined) {
+            filter.folderId = folderId ? new mongoose.Types.ObjectId(folderId) : null;
+        }
+
+        // Count total
+        const total = await DocumentModel.countDocuments(filter);
+
+        // Build sort
+        const sort: Record<string, 1 | -1> = {};
+        if (sortBy === 'relevance' && query) {
+            // For relevance, prioritize name matches over originalName
+            // This is a simple approximation; for true relevance, use text indexes
+            sort.name = sortOrder === 'asc' ? 1 : -1;
+        } else {
+            sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        }
+
+        // Get documents
+        const docs = await DocumentModel.find(filter)
+            .sort(sort)
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        const documents = docs.map(doc => this.toResponse(doc));
+        const searchTime = Date.now() - startTime;
+
+        return {
+            documents,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+            searchMeta: query ? {
+                query,
+                resultsFound: total,
+                searchTime,
+            } : undefined,
         };
     }
 

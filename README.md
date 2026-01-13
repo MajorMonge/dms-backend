@@ -14,7 +14,7 @@ A cloud-based Document Management System backend built with Node.js, TypeScript,
 - **Adapter Pattern**: Abstracted database and storage layers
 - **API Documentation**: Swagger/OpenAPI documentation
 - **Docker Support**: Containerized development environment
-- **Infrastructure as Code**: Terraform for AWS resources (VPC, ECS, ECR, API Gateway, Cognito, S3)
+- **Infrastructure as Code**: Terraform for AWS S3 and Cognito
 
 ## Tech Stack
 
@@ -72,17 +72,10 @@ src/
 ├── app.ts              # Express application setup
 └── server.ts           # Server entry point
 
-terraform/              # Infrastructure as Code
+terraform/              # Infrastructure as Code (S3 & Cognito only)
 ├── main.tf             # Main Terraform configuration
-├── vpc.tf              # VPC and networking
-├── ecs.tf              # ECS cluster and service
-├── ecr.tf              # Container registry
-├── ec2.tf              # EC2 instances
-├── api_gateway.tf      # API Gateway configuration
 ├── s3.tf               # S3 bucket configuration
 ├── cognito.tf          # Cognito user pool setup
-├── iam.tf              # IAM roles and policies
-├── security_groups.tf  # Security group rules
 ├── variables.tf        # Input variables
 └── outputs.tf          # Output values
 ```
@@ -354,19 +347,13 @@ Tests use a separate MongoDB database to avoid conflicts with development data. 
 - `POST /api/v1/pdf/jobs/:jobId/cancel` - Cancel job
 - `DELETE /api/v1/pdf/jobs/:jobId` - Delete/cancel job
 
-## Infrastructure Deployment
+## Infrastructure (AWS S3 & Cognito)
 
 ### Using Terraform
 
-The `terraform/` directory contains complete AWS infrastructure setup including:
-- **VPC**: Networking with public/private subnets
-- **ECS**: Container orchestration for the API
-- **ECR**: Container registry for Docker images
-- **API Gateway**: HTTP API with routes
-- **S3**: Document storage bucket
-- **Cognito**: User authentication pool
-- **IAM**: Roles and policies
-- **Security Groups**: Network access control
+The `terraform/` directory contains AWS infrastructure setup for:
+- **S3**: Document storage bucket with versioning, encryption, and lifecycle rules
+- **Cognito**: User authentication pool with email verification
 
 Terraform variables are named to match `.env` so you can load them directly using `TF_VAR_` prefix.
 
@@ -397,11 +384,7 @@ Get-Content .env | Where-Object { $_ -match '^(PROJECT_NAME|AWS_|NODE_ENV|CORS_)
 
 2. **Plan infrastructure:**
    ```bash
-   # Using environment variables (recommended)
    terraform plan
-
-   # Or using tfvars file
-   terraform plan -var-file=environments/dev.tfvars
    ```
 
 3. **Apply infrastructure:**
@@ -411,12 +394,19 @@ Get-Content .env | Where-Object { $_ -match '^(PROJECT_NAME|AWS_|NODE_ENV|CORS_)
 
 4. **Update .env with Terraform outputs:**
    ```bash
-   # Get Cognito outputs and update .env
    cd terraform
    
    # Bash
+   echo "AWS_S3_BUCKET_NAME=$(terraform output -raw s3_bucket_name)" >> ../.env
    echo "AWS_COGNITO_USER_POOL_ID=$(terraform output -raw cognito_user_pool_id)" >> ../.env
    echo "AWS_COGNITO_CLIENT_ID=$(terraform output -raw cognito_client_id)" >> ../.env
+   ```
+
+   ```powershell
+   # PowerShell
+   "AWS_S3_BUCKET_NAME=$(terraform output -raw s3_bucket_name)" | Add-Content ../.env
+   "AWS_COGNITO_USER_POOL_ID=$(terraform output -raw cognito_user_pool_id)" | Add-Content ../.env
+   "AWS_COGNITO_CLIENT_ID=$(terraform output -raw cognito_client_id)" | Add-Content ../.env
    ```
 
 ### Docker Deployment

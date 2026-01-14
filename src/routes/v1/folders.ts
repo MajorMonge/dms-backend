@@ -287,44 +287,6 @@ router.get(
 
 /**
  * @swagger
- * /api/v1/folders/trash:
- *   get:
- *     summary: Get folders in trash
- *     tags: [Folders]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 50
- *     responses:
- *       200:
- *         description: List of deleted folders
- */
-router.get(
-    '/trash',
-    authenticate,
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-            const result = await folderService.getTrash(req.user!.id, page, limit);
-            res.json({ success: true, data: result });
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * @swagger
  * /api/v1/folders/{id}:
  *   get:
  *     summary: Get folder by ID
@@ -534,74 +496,11 @@ router.post(
  * @swagger
  * /api/v1/folders/{id}:
  *   delete:
- *     summary: Soft delete folder and contents
- *     tags: [Folders]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       204:
- *         description: Folder deleted
- */
-router.delete(
-    '/:id',
-    authenticate,
-    validate({ params: folderIdParamsSchema }),
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            await folderService.softDelete(req.params.id as string, req.user!.id);
-            res.status(StatusCodes.NO_CONTENT).send();
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * @swagger
- * /api/v1/folders/{id}/restore:
- *   post:
- *     summary: Restore soft-deleted folder
- *     tags: [Folders]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Folder restored
- */
-router.post(
-    '/:id/restore',
-    authenticate,
-    validate({ params: folderIdParamsSchema }),
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const folder = await folderService.restore(req.params.id as string, req.user!.id);
-            res.json({ success: true, data: folder });
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * @swagger
- * /api/v1/folders/{id}/permanent:
- *   delete:
- *     summary: Permanently delete folder and contents
+ *     summary: Delete folder permanently
  *     description: |
  *       Permanently deletes the folder and all subfolders.
- *       Documents in these folders will have their folderId set to null.
+ *       Documents in these folders will be soft-deleted and can be restored later.
+ *       When restoring a document, its original folder structure can be recreated.
  *     tags: [Folders]
  *     security:
  *       - bearerAuth: []
@@ -613,7 +512,7 @@ router.post(
  *           type: string
  *     responses:
  *       200:
- *         description: Folder permanently deleted
+ *         description: Folder deleted
  *         content:
  *           application/json:
  *             schema:
@@ -626,21 +525,21 @@ router.post(
  *                   properties:
  *                     foldersDeleted:
  *                       type: number
- *                     documentsOrphaned:
+ *                     documentsSoftDeleted:
  *                       type: number
  */
 router.delete(
-    '/:id/permanent',
+    '/:id',
     authenticate,
     validate({ params: folderIdParamsSchema }),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const result = await folderService.permanentDelete(req.params.id as string, req.user!.id);
+            const result = await folderService.delete(req.params.id as string, req.user!.id);
             res.json({
                 success: true,
                 data: {
                     foldersDeleted: result.foldersDeleted,
-                    documentsOrphaned: result.documentsDeleted,
+                    documentsSoftDeleted: result.documentsSoftDeleted,
                 },
             });
         } catch (error) {

@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import mongoose from 'mongoose';
-import { DocumentModel, IDocumentDocument, IDeletedFolderInfo } from '../models/Document';
-import { FolderModel } from '../models/Folder';
-import { S3StorageAdapter } from '../adapters/storage/S3StorageAdapter';
-import { userService } from './UserService';
-import { config } from '../config/index';
-import { logger } from '../config/logger';
-import { NotFoundError, ValidationError } from '../middleware/errorHandler';
+import { DocumentModel, IDocumentDocument, IDeletedFolderInfo } from '../models/Document.js';
+import { FolderModel } from '../models/Folder.js';
+import { S3StorageAdapter } from '../adapters/storage/S3StorageAdapter.js';
+import { userService } from './UserService.js';
+import { config } from '../config/index.js';
+import { logger } from '../config/logger.js';
+import { NotFoundError, ValidationError } from '../middleware/errorHandler.js';
 import {
     CreateDocumentDTO,
     UpdateDocumentDTO,
@@ -16,7 +16,7 @@ import {
     DocumentListResponse,
     PresignedUploadResponse,
     PresignedDownloadResponse,
-} from '../types/document';
+} from '../types/document.js';
 
 const MAX_EXPIRE_TIME = 3600; // 1 hour
 

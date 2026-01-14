@@ -10,14 +10,14 @@ import {
     AuthFlowType,
     GetUserCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
-import { config } from '../config/index';
-import { logger } from '../config/logger';
+import { config } from '../config/index.js';
+import { logger } from '../config/logger.js';
 import {
     UnauthorizedError,
     ValidationError,
     ConflictError,
-} from '../middleware/errorHandler';
-import { UserService, userService } from './UserService';
+} from '../middleware/errorHandler.js';
+import { UserService, userService } from './UserService.js';
 
 const cognitoClientConfig: ConstructorParameters<typeof CognitoIdentityProviderClient>[0] = {
     region: config.aws.region,

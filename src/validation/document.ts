@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { config } from '../config/index';
+import { config } from '../config/index.js';
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 

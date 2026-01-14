@@ -1,14 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { userService } from '../../services/UserService';
-import { validate } from '../../middleware/validate';
-import { authenticate, requireGroups } from '../../middleware/auth';
+import { userService } from '../../services/UserService.js';
+import { validate } from '../../middleware/validate.js';
+import { authenticate, requireGroups } from '../../middleware/auth.js';
 import {
     updateUserBodySchema,
     adminUpdateUserBodySchema,
     userIdParamsSchema,
     listUsersQuerySchema,
-} from '../../validation/user';
+} from '../../validation/user.js';
 
 const router = Router();
 

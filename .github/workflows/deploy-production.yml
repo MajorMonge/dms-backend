@@ -117,9 +117,10 @@ jobs:
             JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             JWT_EXPIRES_IN=1d \
             LOG_LEVEL=info \
-            RATE_LIMIT_WINDOW_MS=900000 \
-            RATE_LIMIT_MAX_REQUESTS=100 \
-            MAX_FILE_SIZE_MB=100 \
+            RATE_LIMIT_WINDOW_MS="${{ env.RATE_LIMIT_WINDOW_MS }}" \
+            RATE_LIMIT_MAX_REQUESTS="${{ env.RATE_LIMIT_MAX_REQUESTS }}" \
+            MAX_FILE_SIZE_MB="${{ env.MAX_FILE_SIZE_MB }}" \
+            DEFAULT_STORAGE_LIMIT_MB="${{ env.DEFAULT_STORAGE_LIMIT_MB }}" \
             CORS_ORIGIN="${{ secrets.CORS_ORIGIN }}" \
             --app dms-backend-prod
 

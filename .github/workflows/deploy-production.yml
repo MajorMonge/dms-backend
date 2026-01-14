@@ -117,11 +117,12 @@ jobs:
             JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             JWT_EXPIRES_IN=1d \
             LOG_LEVEL=info \
-            RATE_LIMIT_WINDOW_MS="${{ env.RATE_LIMIT_WINDOW_MS }}" \
-            RATE_LIMIT_MAX_REQUESTS="${{ env.RATE_LIMIT_MAX_REQUESTS }}" \
-            MAX_FILE_SIZE_MB="${{ env.MAX_FILE_SIZE_MB }}" \
-            DEFAULT_STORAGE_LIMIT_MB="${{ env.DEFAULT_STORAGE_LIMIT_MB }}" \
+            RATE_LIMIT_WINDOW_MS="${{ vars.RATE_LIMIT_WINDOW_MS }}" \
+            RATE_LIMIT_MAX_REQUESTS="${{ vars.RATE_LIMIT_MAX_REQUESTS }}" \
+            MAX_FILE_SIZE_MB="${{ vars.MAX_FILE_SIZE_MB }}" \
+            DEFAULT_STORAGE_LIMIT_MB="${{ vars.DEFAULT_STORAGE_LIMIT_MB }}" \
             CORS_ORIGIN="${{ secrets.CORS_ORIGIN }}" \
+            ALLOWED_FILE_TYPES="${{ vars.ALLOWED_FILE_TYPES }}" \
             --app dms-backend-prod
 
       - name: Deploy to Fly.io

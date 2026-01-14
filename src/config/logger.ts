@@ -6,7 +6,7 @@ const { combine, timestamp, printf, colorize, errors } = winston.format;
 const MAX_LOG_FILE_SIZE = 5 * 1024 * 1024; 
 const MAX_LOG_FILES = 5;
 
-const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => {
+const logFormat = printf(({ level, message, timestamp, stack, service, ...metadata }) => {
   let log = `${timestamp} [${level}]: ${message}`;
 
   if (Object.keys(metadata).length > 0) {

@@ -899,6 +899,9 @@ router.post(
  * /api/v1/documents/{id}/restore:
  *   post:
  *     summary: Restore document from trash
+ *     description: |
+ *       Restores a soft-deleted document. If the document's folder was deleted,
+ *       the folder structure will be automatically recreated unless specified otherwise.
  *     tags: [Documents]
  *     security:
  *       - bearerAuth: []
@@ -908,9 +911,34 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               recreateFolder:
+ *                 type: boolean
+ *                 default: true
+ *                 description: Whether to recreate the folder structure if it was deleted
  *     responses:
  *       200:
  *         description: Document restored
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/Document'
+ *                     - type: object
+ *                       properties:
+ *                         folderRecreated:
+ *                           type: boolean
+ *                           description: Whether the folder structure was recreated
  */
 router.post(
     '/:id/restore',
@@ -918,7 +946,12 @@ router.post(
     validate({ params: idParamsSchema }),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const document = await documentService.restore(req.params.id as string, req.user!.id);
+            const recreateFolder = req.body.recreateFolder !== false;
+            const document = await documentService.restore(
+                req.params.id as string,
+                req.user!.id,
+                { recreateFolder }
+            );
             res.json({ success: true, data: document });
         } catch (error) {
             next(error);

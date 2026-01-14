@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document as MongoDocument } from 'mongoose';
 
+export interface IDeletedFolderInfo {
+    folderId: string;
+    name: string;
+    path: string;
+    parentId: string | null;
+}
+
 export interface IDocument {
     name: string;
     originalName: string;
@@ -14,6 +21,7 @@ export interface IDocument {
     version: number;
     isDeleted: boolean;
     deletedAt?: Date;
+    deletedFolderInfo?: IDeletedFolderInfo | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -82,6 +90,15 @@ const DocumentSchema = new Schema<IDocumentDocument>(
         },
         deletedAt: {
             type: Date,
+            default: null,
+        },
+        deletedFolderInfo: {
+            type: {
+                folderId: String,
+                name: String,
+                path: String,
+                parentId: String,
+            },
             default: null,
         },
     },

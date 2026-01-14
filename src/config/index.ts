@@ -61,7 +61,7 @@ export const config = {
   // File Upload
   upload: {
     maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100', 10),
-    allowedFileTypes: (process.env.ALLOWED_FILE_TYPES || 'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,gif').split(','),
+    allowedFileTypes: (process.env.ALLOWED_FILE_TYPES || 'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,gif,csv,json,xml').split(','),
   },
 
   // CORS

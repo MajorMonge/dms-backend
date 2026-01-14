@@ -12,7 +12,8 @@ export interface IUser {
 
 export interface IUserDocument extends IUser, MongoDocument {}
 
-const DEFAULT_STORAGE_LIMIT = 5 * 1024 * 1024 * 1024; // 5GB
+const DEFAULT_STORAGE_LIMIT =
+    parseInt(process.env.DEFAULT_STORAGE_LIMIT_MB || '100', 10) * 1024 * 1024; // default 100MB
 
 const UserSchema = new Schema<IUserDocument>(
     {

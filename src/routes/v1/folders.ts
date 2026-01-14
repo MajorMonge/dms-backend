@@ -1,15 +1,15 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { folderService } from '../../services/FolderService';
-import { validate } from '../../middleware/validate';
-import { authenticate } from '../../middleware/auth';
+import { folderService } from '../../services/FolderService.js';
+import { validate } from '../../middleware/validate.js';
+import { authenticate } from '../../middleware/auth.js';
 import {
     createFolderBodySchema,
     updateFolderBodySchema,
     moveFolderBodySchema,
     folderIdParamsSchema,
     listFoldersQuerySchema,
-} from '../../validation/folder';
+} from '../../validation/folder.js';
 
 const router = Router();
 

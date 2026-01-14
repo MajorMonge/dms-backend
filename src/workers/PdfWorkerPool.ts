@@ -9,7 +9,7 @@ import { EventEmitter } from 'events';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import os from 'os';
-import { logger } from '../config/logger';
+import { logger } from '../config/logger.js';
 import type {
     PdfWorkerMessage,
     PdfWorkerResponse,
@@ -17,7 +17,7 @@ import type {
     PdfSplitWorkerResult,
     JobInfo,
     JobStatus,
-} from '../types/pdfWorker';
+} from '../types/pdfWorker.js';
 
 // Default pool size based on CPU cores (leave 1 for main thread)
 const DEFAULT_POOL_SIZE = Math.max(1, os.cpus().length - 1);

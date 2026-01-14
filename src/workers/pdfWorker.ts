@@ -5,8 +5,8 @@ import type {
     PdfWorkerResponse,
     PdfSplitWorkerResult,
     PdfSplitWorkerOptions,
-} from '../types/pdfWorker';
-import type { PageRange } from '../types/pdf';
+} from '../types/pdfWorker.js';
+import type { PageRange } from '../types/pdf.js';
 
 if (!parentPort) {
     throw new Error('This module must be run as a worker thread');

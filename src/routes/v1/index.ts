@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import healthRoutes from './health';
-import authRoutes from './auth';
-import documentRoutes from './documents';
-import userRoutes from './users';
-import folderRoutes from './folders';
-import pdfRoutes from './pdf';
+import healthRoutes from './health.js';
+import authRoutes from './auth.js';
+import documentRoutes from './documents.js';
+import userRoutes from './users.js';
+import folderRoutes from './folders.js';
+import pdfRoutes from './pdf.js';
 
 const router = Router();
 

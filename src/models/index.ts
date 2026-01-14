@@ -1,3 +1,3 @@
-export * from './Document';
-export * from './User';
-export * from './Folder';
+export * from './Document.js';
+export * from './User.js';
+export * from './Folder.js';

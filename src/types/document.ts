@@ -1,4 +1,4 @@
-import { IDocument } from '../models/Document';
+import { IDocument } from '../models/Document.js';
 
 export interface CreateDocumentDTO {
     name: string;

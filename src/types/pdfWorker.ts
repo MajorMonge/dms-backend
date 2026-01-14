@@ -2,7 +2,7 @@
  * Worker thread types for PDF processing
  */
 
-import { SplitMode, PageRange } from './pdf';
+import { SplitMode, PageRange } from './pdf.js';
 
 /**
  * Job status for tracking

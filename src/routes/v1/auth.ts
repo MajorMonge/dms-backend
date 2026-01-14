@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { authService } from '../../services/AuthService';
-import { validate } from '../../middleware/validate';
-import { authenticate } from '../../middleware/auth';
+import { authService } from '../../services/AuthService.js';
+import { validate } from '../../middleware/validate.js';
+import { authenticate } from '../../middleware/auth.js';
 import {
     registerBodySchema,
     loginBodySchema,
@@ -11,7 +11,7 @@ import {
     forgotPasswordBodySchema,
     resetPasswordBodySchema,
     refreshTokenBodySchema,
-} from '../../validation/auth';
+} from '../../validation/auth.js';
 
 const router = Router();
 

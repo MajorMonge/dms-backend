@@ -1,9 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { pdfService } from '../../services/PdfService';
-import { validate } from '../../middleware/validate';
-import { authenticate } from '../../middleware/auth';
-import { splitPdfBodySchema, pdfIdParamsSchema } from '../../validation/pdf';
+import { pdfService } from '../../services/PdfService.js';
+import { validate } from '../../middleware/validate.js';
+import { authenticate } from '../../middleware/auth.js';
+import { splitPdfBodySchema, pdfIdParamsSchema } from '../../validation/pdf.js';
 
 const router = Router();
 

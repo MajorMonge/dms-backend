@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import multer from 'multer';
-import { documentService } from '../../services/DocumentService';
-import { validate, cacheControl, setLastModified, cacheConfigs } from '../../middleware/index';
-import { authenticate } from '../../middleware/auth';
-import { config } from '../../config/index';
+import { documentService } from '../../services/DocumentService.js';
+import { validate, cacheControl, setLastModified, cacheConfigs } from '../../middleware/index.js';
+import { authenticate } from '../../middleware/auth.js';
+import { config } from '../../config/index.js';
 import {
     idParamsSchema,
     updateDocumentBodySchema,
@@ -15,7 +15,7 @@ import {
     moveDocumentBodySchema,
     copyDocumentBodySchema,
     searchDocumentsQuerySchema,
-} from '../../validation/document';
+} from '../../validation/document.js';
 
 const router = Router();
 

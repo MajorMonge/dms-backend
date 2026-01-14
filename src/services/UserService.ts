@@ -1,9 +1,9 @@
-import { UserModel, IUserDocument } from '../models/User';
-import { logger } from '../config/logger';
+import { UserModel, IUserDocument } from '../models/User.js';
+import { logger } from '../config/logger.js';
 import {
     NotFoundError,
     ValidationError,
-} from '../middleware/errorHandler';
+} from '../middleware/errorHandler.js';
 import {
     CreateUserFromCognitoDTO,
     UpdateUserDTO,
@@ -12,7 +12,7 @@ import {
     UserListQuery,
     UserListResponse,
     UserStorageInfo,
-} from '../types/user';
+} from '../types/user.js';
 
 export class UserService {
     /**

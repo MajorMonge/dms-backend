@@ -1,4 +1,4 @@
-import { IFolder } from '../models/Folder';
+import { IFolder } from '../models/Folder.js';
 
 /**
  * DTO for creating a folder

@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import mongoose from 'mongoose';
-import { DocumentModel, IDocumentDocument } from '../models/Document';
+import { DocumentModel, IDocumentDocument, IDeletedFolderInfo } from '../models/Document';
+import { FolderModel } from '../models/Folder';
 import { S3StorageAdapter } from '../adapters/storage/S3StorageAdapter';
 import { userService } from './UserService';
 import { config } from '../config/index';
@@ -601,17 +602,40 @@ export class DocumentService {
     }
 
     /**
-     * Soft delete document
+     * Soft delete document, saving folder info for potential restoration
      */
     async softDelete(id: string, ownerId: string): Promise<void> {
-        const doc = await DocumentModel.findOneAndUpdate(
-            { _id: id, ownerId, isDeleted: false },
-            { $set: { isDeleted: true, deletedAt: new Date() } }
-        );
+        const doc = await DocumentModel.findOne({ _id: id, ownerId, isDeleted: false });
 
         if (!doc) {
             throw new NotFoundError('Document');
         }
+
+        let deletedFolderInfo: IDeletedFolderInfo | null = null;
+
+        // Save folder info if document is in a folder
+        if (doc.folderId) {
+            const folder = await FolderModel.findById(doc.folderId);
+            if (folder) {
+                deletedFolderInfo = {
+                    folderId: folder._id.toString(),
+                    name: folder.name,
+                    path: folder.path,
+                    parentId: folder.parentId?.toString() || null,
+                };
+            }
+        }
+
+        await DocumentModel.updateOne(
+            { _id: id },
+            {
+                $set: {
+                    isDeleted: true,
+                    deletedAt: new Date(),
+                    deletedFolderInfo,
+                },
+            }
+        );
 
         logger.info(`Document soft deleted: ${id} by user ${ownerId}`);
     }
@@ -639,21 +663,130 @@ export class DocumentService {
 
     /**
      * Restore soft-deleted document
+     * If the document had a folder that was deleted, recreates the folder structure
      */
-    async restore(id: string, ownerId: string): Promise<DocumentResponse> {
-        const doc = await DocumentModel.findOneAndUpdate(
-            { _id: id, ownerId, isDeleted: true },
-            { $set: { isDeleted: false, deletedAt: null } },
-            { new: true }
-        );
+    async restore(id: string, ownerId: string, options?: { recreateFolder?: boolean }): Promise<DocumentResponse & { folderRecreated?: boolean }> {
+        const doc = await DocumentModel.findOne({ _id: id, ownerId, isDeleted: true });
 
         if (!doc) {
             throw new NotFoundError('Document');
         }
 
-        logger.info(`Document restored: ${id} by user ${ownerId}`);
+        let folderId: mongoose.Types.ObjectId | null = null;
+        let folderRecreated = false;
 
-        return this.toResponse(doc);
+        // Check if document had a folder
+        if (doc.deletedFolderInfo) {
+            // Check if the original folder still exists
+            const existingFolder = await FolderModel.findOne({
+                _id: doc.deletedFolderInfo.folderId,
+                ownerId,
+            });
+
+            if (existingFolder) {
+                // Original folder exists, use it
+                folderId = existingFolder._id;
+            } else if (options?.recreateFolder !== false) {
+                // Recreate the folder structure
+                const recreatedFolder = await this.recreateFolderFromInfo(ownerId, doc.deletedFolderInfo);
+                if (recreatedFolder) {
+                    folderId = recreatedFolder._id;
+                    folderRecreated = true;
+                }
+            }
+            // If recreateFolder is false, document goes to root (folderId stays null)
+        } else if (doc.folderId) {
+            // Document has a folderId but no deletedFolderInfo (old format)
+            // Check if folder still exists
+            const existingFolder = await FolderModel.findOne({
+                _id: doc.folderId,
+                ownerId,
+            });
+
+            if (existingFolder) {
+                folderId = existingFolder._id;
+            }
+            // Otherwise, document goes to root
+        }
+
+        // Restore the document
+        const updatedDoc = await DocumentModel.findByIdAndUpdate(
+            id,
+            {
+                $set: {
+                    isDeleted: false,
+                    deletedAt: null,
+                    deletedFolderInfo: null,
+                    folderId,
+                },
+            },
+            { new: true }
+        );
+
+        logger.info(`Document restored: ${id} by user ${ownerId}${folderRecreated ? ' (folder recreated)' : ''}`);
+
+        return {
+            ...this.toResponse(updatedDoc!),
+            folderRecreated,
+        };
+    }
+
+    /**
+     * Recreate folder structure from deleted folder info
+     */
+    private async recreateFolderFromInfo(
+        ownerId: string,
+        folderInfo: IDeletedFolderInfo
+    ): Promise<mongoose.Document | null> {
+        try {
+            // Parse the path to get folder hierarchy
+            const pathParts = folderInfo.path.split('/').filter(Boolean);
+            
+            if (pathParts.length === 0) {
+                return null;
+            }
+
+            let parentId: mongoose.Types.ObjectId | null = null;
+            let currentPath = '';
+            let lastFolder: mongoose.Document | null = null;
+
+            // Recreate each folder in the path
+            for (let i = 0; i < pathParts.length; i++) {
+                const folderName = pathParts[i];
+                currentPath = currentPath + '/' + folderName;
+
+                // Check if this folder already exists
+                let folder = await FolderModel.findOne({
+                    ownerId,
+                    path: currentPath,
+                });
+
+                if (!folder) {
+                    // Create the folder
+                    folder = await FolderModel.create({
+                        name: folderName,
+                        parentId,
+                        ownerId,
+                        path: currentPath,
+                        depth: i,
+                        metadata: {},
+                    });
+
+                    logger.info(`Folder recreated during document restore: ${folder._id} (${currentPath})`);
+                }
+
+                parentId = folder._id;
+                lastFolder = folder;
+            }
+
+            return lastFolder;
+        } catch (error) {
+            logger.error('Failed to recreate folder structure:', {
+                error: error instanceof Error ? error.message : error,
+                folderInfo,
+            });
+            return null;
+        }
     }
 
     /**

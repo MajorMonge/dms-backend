@@ -210,12 +210,12 @@ export class AuthService {
 
             logger.info(`Verification code resent to: ${email}`);
 
-            return { message: 'Verification code sent to your email' };
+            return { message: 'If the email exists, a verification code has been sent' };
         } catch (error: unknown) {
             const cognitoError = error as { name?: string; message?: string };
             
             if (cognitoError.name === 'UserNotFoundException') {
-                // Don't reveal if user exists
+                // Don't reveal if user exists - return same message as success
                 return { message: 'If the email exists, a verification code has been sent' };
             }
             if (cognitoError.name === 'LimitExceededException') {

@@ -1,4 +1,4 @@
-import { IUser } from '../models/User';
+import { IUser } from '../models/User.js';
 
 /**
  * DTO for creating a user from Cognito
@@ -27,6 +27,13 @@ export interface UpdateUserAdminDTO extends UpdateUserDTO {
  */
 export interface UserResponse extends IUser {
     id: string;
+    email: string;
+    cognitoId: string;
+    storageUsed: number;
+    storageLimit: number;
+    metadata: Record<string, unknown>;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 /**

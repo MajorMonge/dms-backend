@@ -511,13 +511,13 @@ export class FolderService {
     }
 
     /**
-     * Soft delete folder and all contents
+     * Delete folder permanently and soft-delete all contents
+     * Documents will have their folder info saved for potential restoration
      */
-    async softDelete(id: string, ownerId: string): Promise<void> {
+    async delete(id: string, ownerId: string): Promise<{ foldersDeleted: number; documentsSoftDeleted: number }> {
         const folder = await FolderModel.findOne({
             _id: id,
             ownerId,
-            isDeleted: false,
         });
 
         if (!folder) {
@@ -527,152 +527,77 @@ export class FolderService {
         const now = new Date();
         const escapedPath = folder.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-        // Soft delete the folder
-        await FolderModel.updateOne(
-            { _id: id },
-            { $set: { isDeleted: true, deletedAt: now } }
-        );
-
-        // Soft delete all subfolders
-        await FolderModel.updateMany(
-            {
-                ownerId,
-                path: { $regex: `^${escapedPath}/` },
-                isDeleted: false,
-            },
-            { $set: { isDeleted: true, deletedAt: now } }
-        );
-
-        // Soft delete all documents in this folder and subfolders
-        const folderIds = await FolderModel.find({
+        // Get all folder IDs to delete (this folder + all subfolders)
+        const foldersToDelete = await FolderModel.find({
             ownerId,
             $or: [
                 { _id: id },
                 { path: { $regex: `^${escapedPath}/` } },
             ],
-        }).distinct('_id');
-
-        await DocumentModel.updateMany(
-            {
-                ownerId,
-                folderId: { $in: folderIds },
-                isDeleted: false,
-            },
-            { $set: { isDeleted: true, deletedAt: now } }
-        );
-
-        logger.info(`Folder soft deleted: ${id} by user ${ownerId}`);
-    }
-
-    /**
-     * Restore soft-deleted folder
-     */
-    async restore(id: string, ownerId: string): Promise<FolderResponse> {
-        const folder = await FolderModel.findOne({
-            _id: id,
-            ownerId,
-            isDeleted: true,
         });
 
-        if (!folder) {
-            throw new NotFoundError('Folder');
-        }
-
-        // Check if parent exists and is not deleted (if has parent)
-        if (folder.parentId) {
-            const parent = await FolderModel.findOne({
-                _id: folder.parentId,
-                ownerId,
-                isDeleted: false,
-            });
-
-            if (!parent) {
-                throw new ValidationError(
-                    'Cannot restore folder: parent folder is deleted. Restore the parent folder first.',
-                    'FOLDER_PARENT_DELETED'
-                );
-            }
-        }
-
-        // Restore only this folder (not descendants - they must be restored individually)
-        const updated = await FolderModel.findByIdAndUpdate(
-            id,
-            { $set: { isDeleted: false, deletedAt: null } },
-            { new: true }
+        const folderIds = foldersToDelete.map(f => f._id);
+        
+        // Create a map of folder info for documents
+        const folderInfoMap = new Map(
+            foldersToDelete.map(f => [
+                f._id.toString(),
+                {
+                    folderId: f._id.toString(),
+                    name: f.name,
+                    path: f.path,
+                    parentId: f.parentId?.toString() || null,
+                }
+            ])
         );
 
-        logger.info(`Folder restored: ${id} by user ${ownerId}`);
-
-        return this.toResponse(updated!);
-    }
-
-    /**
-     * Permanently delete folder and all contents
-     */
-    async permanentDelete(id: string, ownerId: string): Promise<{ foldersDeleted: number; documentsDeleted: number }> {
-        const folder = await FolderModel.findOne({ _id: id, ownerId });
-
-        if (!folder) {
-            throw new NotFoundError('Folder');
-        }
-
-        const escapedPath = folder.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-        // Get all folder IDs to delete
-        const folderIds = await FolderModel.find({
+        // Soft delete all documents in these folders and save folder info
+        const docsToUpdate = await DocumentModel.find({
             ownerId,
-            $or: [
-                { _id: id },
-                { path: { $regex: `^${escapedPath}/` } },
-            ],
-        }).distinct('_id');
+            folderId: { $in: folderIds },
+            isDeleted: false,
+        });
 
-        // Note: Documents in these folders should be handled by DocumentService
-        // to properly release storage. For now, we just unset their folderId.
-        const docResult = await DocumentModel.updateMany(
-            {
-                ownerId,
-                folderId: { $in: folderIds },
-            },
-            { $set: { folderId: null } }
-        );
+        let documentsSoftDeleted = 0;
+        for (const doc of docsToUpdate) {
+            const folderInfo = folderInfoMap.get(doc.folderId?.toString() || '');
+            await DocumentModel.updateOne(
+                { _id: doc._id },
+                {
+                    $set: {
+                        isDeleted: true,
+                        deletedAt: now,
+                        deletedFolderInfo: folderInfo || null,
+                        folderId: null,
+                    },
+                }
+            );
+            documentsSoftDeleted++;
+        }
 
-        // Delete folders
+        // Permanently delete all folders
         const folderResult = await FolderModel.deleteMany({
             _id: { $in: folderIds },
         });
 
         logger.info(
-            `Folder permanently deleted: ${id} by user ${ownerId} (${folderResult.deletedCount} folders, ${docResult.modifiedCount} documents orphaned)`
+            `Folder deleted: ${id} by user ${ownerId} (${folderResult.deletedCount} folders, ${documentsSoftDeleted} documents soft-deleted)`
         );
 
         return {
             foldersDeleted: folderResult.deletedCount,
-            documentsDeleted: docResult.modifiedCount,
+            documentsSoftDeleted,
         };
     }
 
     /**
-     * Get folders in trash
+     * Permanently delete folder (alias for delete - kept for API compatibility)
      */
-    async getTrash(ownerId: string, page = 1, limit = 50): Promise<FolderListResponse> {
-        const filter = { ownerId, isDeleted: true };
-
-        const total = await FolderModel.countDocuments(filter);
-
-        const folders = await FolderModel.find(filter)
-            .sort({ deletedAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit);
-
+    async permanentDelete(id: string, ownerId: string): Promise<{ foldersDeleted: number; documentsDeleted: number }> {
+        const result = await this.delete(id, ownerId);
         return {
-            folders: folders.map((f) => this.toResponse(f)),
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-            },
+            foldersDeleted: result.foldersDeleted,
+            documentsDeleted: result.documentsSoftDeleted,
         };
     }
 }

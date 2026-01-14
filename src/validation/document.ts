@@ -28,7 +28,12 @@ export const deleteDocumentQuerySchema = z.object({
 });
 
 export const listDocumentsQuerySchema = z.object({
-    folderId: z.string().regex(objectIdRegex, 'Invalid folder ID').nullable().optional(),
+    folderId: z
+        .string()
+        .regex(objectIdRegex, 'Invalid folder ID')
+        .or(z.literal('null'))
+        .optional()
+        .transform((val) => (val === 'null' ? null : val)),
     tags: z.union([z.string(), z.array(z.string())]).optional().transform(val =>
         val ? (Array.isArray(val) ? val : val.split(',')) : undefined
     ),

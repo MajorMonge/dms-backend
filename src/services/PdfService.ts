@@ -1,17 +1,17 @@
 import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
-import { DocumentModel, IDocumentDocument } from '../models/Document';
-import { S3StorageAdapter } from '../adapters/storage/S3StorageAdapter';
-import { pdfWorkerPool } from '../workers/PdfWorkerPool';
-import { userService } from './UserService';
-import { logger } from '../config/logger';
-import { NotFoundError, ValidationError } from '../middleware/errorHandler';
+import { DocumentModel, IDocumentDocument } from '../models/Document.js';
+import { S3StorageAdapter } from '../adapters/storage/S3StorageAdapter.js';
+import { pdfWorkerPool } from '../workers/PdfWorkerPool.js';
+import { userService } from './UserService.js';
+import { logger } from '../config/logger.js';
+import { NotFoundError, ValidationError } from '../middleware/errorHandler.js';
 import {
     SplitPdfDTO,
     SplitPdfResponse,
     SplitResultItem,
     PdfInfo,
-} from '../types/pdf';
+} from '../types/pdf.js';
 
 const PDF_MIME_TYPE = 'application/pdf';
 
@@ -118,7 +118,10 @@ export class PdfService {
         logger.info(`Worker completed job ${jobId}: ${splits.length} splits from ${pageCount} pages`);
 
         // Validate total storage needed
-        const totalSize = splits.reduce((sum, s) => sum + s.pdfBytes.length, 0);
+        const totalSize = splits.reduce(
+            (sum: number, s: { pdfBytes: Uint8Array }) => sum + s.pdfBytes.length,
+            0
+        );
         const hasStorage = await userService.hasStorageAvailable(ownerId, totalSize);
         if (!hasStorage) {
             throw new ValidationError('Insufficient storage space for split operation');
@@ -226,8 +229,9 @@ export class PdfService {
      * Get queued jobs for a user
      */
     getQueuedJobs(ownerId: string) {
-        return pdfWorkerPool.getQueuedJobs()
-            .filter(job => job.ownerId === ownerId);
+        return pdfWorkerPool
+            .getQueuedJobs()
+            .filter((job: { ownerId: string }) => job.ownerId === ownerId);
     }
 
     /**

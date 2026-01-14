@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { UserModel } from '../../models/User';
-import { AuthenticatedUser } from '../../middleware/auth';
+import { UserModel } from '../../models/User.js';
+import { AuthenticatedUser } from '../../middleware/auth.js';
 
 const TEST_JWT_SECRET = 'test-jwt-secret-for-testing';
 

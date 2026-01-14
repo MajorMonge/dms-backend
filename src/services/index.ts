@@ -1,3 +1,3 @@
-export * from './AuthService';
-export * from './DocumentService';
-export * from './UserService';
+export * from './AuthService.js';
+export * from './DocumentService.js';
+export * from './UserService.js';

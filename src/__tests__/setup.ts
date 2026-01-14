@@ -18,7 +18,7 @@ jest.mock('../config/index', () => {
     };
 });
 
-import { connectDatabase, disconnectDatabase, clearDatabase } from './helpers/db';
+import { connectDatabase, disconnectDatabase, clearDatabase } from './helpers/db.js';
 
 beforeAll(async () => {
     await connectDatabase();

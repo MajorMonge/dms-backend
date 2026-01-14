@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
-import { FolderModel, IFolderDocument, MAX_FOLDER_DEPTH } from '../models/Folder';
-import { DocumentModel } from '../models/Document';
-import { logger } from '../config/logger';
-import { NotFoundError, ValidationError, ConflictError } from '../middleware/errorHandler';
+import { FolderModel, IFolderDocument, MAX_FOLDER_DEPTH } from '../models/Folder.js';
+import { DocumentModel } from '../models/Document.js';
+import { logger } from '../config/logger.js';
+import { NotFoundError, ValidationError, ConflictError } from '../middleware/errorHandler.js';
 import {
     CreateFolderDTO,
     UpdateFolderDTO,
@@ -13,7 +13,7 @@ import {
     FolderListResponse,
     FolderTreeNode,
     BreadcrumbItem,
-} from '../types/folder';
+} from '../types/folder.js';
 
 export class FolderService {
     /**
@@ -206,7 +206,7 @@ export class FolderService {
             .limit(limit);
 
         return {
-            folders: folders.map((f) => this.toResponse(f)),
+            folders: folders.map((f: IFolderDocument) => this.toResponse(f)),
             pagination: {
                 page,
                 limit,
@@ -226,7 +226,7 @@ export class FolderService {
             isDeleted: false,
         }).sort({ name: 1 });
 
-        return folders.map((f) => this.toResponse(f));
+        return folders.map((f: IFolderDocument) => this.toResponse(f));
     }
 
     /**
@@ -239,7 +239,7 @@ export class FolderService {
             isDeleted: false,
         }).sort({ name: 1 });
 
-        return folders.map((f) => this.toResponse(f));
+        return folders.map((f: IFolderDocument) => this.toResponse(f));
     }
 
     /**
@@ -292,7 +292,7 @@ export class FolderService {
 
         // Build a map of folders by ID
         const folderMap = new Map<string, FolderTreeNode>();
-        allFolders.forEach((f) => {
+        allFolders.forEach((f: IFolderDocument) => {
             folderMap.set(f._id.toString(), {
                 ...this.toResponse(f),
                 children: [],
@@ -536,11 +536,11 @@ export class FolderService {
             ],
         });
 
-        const folderIds = foldersToDelete.map(f => f._id);
+        const folderIds = foldersToDelete.map((f: IFolderDocument) => f._id);
         
         // Create a map of folder info for documents
         const folderInfoMap = new Map(
-            foldersToDelete.map(f => [
+            foldersToDelete.map((f: IFolderDocument) => [
                 f._id.toString(),
                 {
                     folderId: f._id.toString(),

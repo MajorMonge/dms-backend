@@ -66,7 +66,7 @@ export const config = {
 
   // CORS
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: (process.env.CORS_ORIGIN || 'http://localhost:3001').split(',').map((url) => url.trim()),
   },
 
   // Computed values

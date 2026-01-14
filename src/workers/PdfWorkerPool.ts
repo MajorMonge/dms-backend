@@ -84,26 +84,9 @@ export class PdfWorkerPool extends EventEmitter {
     private async createWorker(): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                const isTypeScript = this.workerPath.endsWith('.ts');
-                
                 const workerFileUrl = pathToFileURL(this.workerPath);
                 
-                const workerOptions = isTypeScript
-                    ? {
-                        eval: true,
-                        workerData: { workerPath: workerFileUrl.href },
-                    }
-                    : {};
-                
-                const workerScript = isTypeScript
-                    ? `
-                        import { workerData } from 'worker_threads';
-                        await import('tsx');
-                        await import(workerData.workerPath);
-                    `
-                    : workerFileUrl;
-                
-                const worker = new Worker(workerScript, workerOptions);
+                const worker = new Worker(workerFileUrl);
 
                 const poolWorker: PoolWorker = {
                     worker,
